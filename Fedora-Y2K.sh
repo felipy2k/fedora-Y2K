@@ -5,6 +5,7 @@ set -euo pipefail
 info() { echo -e "\n▶ $*"; }
 step() { echo -e "  → $*"; }
 warn() { echo -e "  ⚠ $*"; }
+ok()   { echo -e "  ✓ $*"; }
 
 try() {
   "$@" || warn "Falhou: $*"
@@ -35,6 +36,11 @@ gpgkey=https://dl.google.com/linux/linux_signing_key.pub
 EOF
   fi
 
+  if [[ ! -f /etc/yum.repos.d/brave-browser.repo ]]; then
+    try sudo dnf config-manager --add-repo https://brave-browser-rpm-release.s3.brave.com/brave-browser.repo
+    try sudo rpm --import https://brave-browser-rpm-release.s3.brave.com/brave-core.asc
+  fi
+
   try sudo dnf makecache
 }
 
@@ -44,7 +50,9 @@ install_codecs() {
   try sudo dnf swap -y ffmpeg-free ffmpeg --allowerasing
 
   try sudo dnf install -y --skip-unavailable \
-    ffmpeg ffmpeg-libs libavcodec-freeworld \
+    ffmpeg \
+    ffmpeg-libs \
+    libavcodec-freeworld \
     vlc \
     gstreamer1-libav \
     gstreamer1-plugins-good \
@@ -57,9 +65,18 @@ install_rpms() {
   info "Apps RPM"
 
   try sudo dnf install -y --skip-unavailable \
-    curl wget git flatpak \
-    google-chrome-stable firefox \
-    audacity darktable handbrake-gui inkscape easyeffects \
+    curl \
+    wget \
+    git \
+    flatpak \
+    google-chrome-stable \
+    brave-browser \
+    firefox \
+    audacity \
+    darktable \
+    handbrake-gui \
+    inkscape \
+    easyeffects \
     gnome-tweaks \
     gnome-boxes \
     gnome-calculator \
@@ -87,7 +104,9 @@ install_flatpaks() {
     org.freecad.FreeCAD \
     org.upscayl.Upscayl \
     org.shotcut.Shotcut \
-    org.gnome.FileShredder
+    org.gnome.FileShredder \
+    com.mattjakeman.ExtensionManager \
+    com.usebruno.Bruno
   do
     step "$app"
     try flatpak install -y flathub "$app"
@@ -98,7 +117,16 @@ install_freeoffice() {
   info "FreeOffice"
 
   try sudo dnf install -y curl
-  curl -fsSL https://softmaker.net/down/install-softmaker-freeoffice-2024.sh | sudo bash || warn "FreeOffice falhou"
+
+  TMPFILE="$(mktemp)"
+  if curl -fsSL https://softmaker.net/down/install-softmaker-freeoffice-2024.sh -o "$TMPFILE"; then
+    try sudo bash "$TMPFILE"
+    rm -f "$TMPFILE"
+    ok "FreeOffice instalado ou já presente"
+  else
+    rm -f "$TMPFILE"
+    warn "Falha ao baixar instalador do FreeOffice"
+  fi
 }
 
 install_nvidia() {
@@ -130,7 +158,20 @@ remove_bloat() {
     yelp \
     dconf-editor \
     brasero \
-    gnome-software
+    gnome-software \
+    gnome-extensions-app \
+    htop \
+    piper
+
+  try flatpak uninstall -y \
+    org.gnome.Brasero \
+    org.freedesktop.Piper \
+    org.gnome.Totem \
+    org.gnome.Music \
+    org.gnome.Cheese \
+    org.gnome.Software \
+    org.gnome.Extensions \
+    org.gnome.Help
 
   try sudo dnf autoremove -y
 }
@@ -146,11 +187,11 @@ verify() {
   info "Verificação"
 
   echo "Pacotes que não deveriam sobrar:"
-  rpm -qa | grep -E "libreoffice|totem|cheese|gnome-music|rhythmbox|gnome-system-monitor|yelp|dconf-editor|brasero" || echo "Limpo"
+  rpm -qa | grep -E "libreoffice|totem|cheese|gnome-music|rhythmbox|gnome-system-monitor|yelp|dconf-editor|brasero|gnome-software|gnome-extensions-app|htop|piper" || echo "Limpo"
 
   echo
   echo "Flatpaks principais:"
-  flatpak list --app | grep -E "Resources|Flatseal|Blanket|FreeCAD|Upscayl|Shotcut|FileShredder" || true
+  flatpak list --app | grep -E "Resources|Flatseal|Blanket|FreeCAD|Upscayl|Shotcut|FileShredder|Extension|Bruno" || true
 }
 
 run_all() {
