@@ -2,90 +2,75 @@
 
 set +e
 
-# --- CONFIGURAÇÕES DE SISTEMA ---
+run() {
+  "$@"
+  if [ $? -ne 0 ]; then
+    echo "Aviso: comando falhou, continuando..."
+  fi
+}
 
 update_system() {
-  echo ">> Limpando kernels antigos e ajustando limite EFI"
+  echo ">> [EFI] Limpando kernels e travando limite em 2"
   run sudo dnf remove $(dnf repoquery --installonly --latest=-1) -y
   run sudo sed -i 's/installonly_limit=3/installonly_limit=2/' /etc/dnf/dnf.conf
   run sudo dnf upgrade --refresh -y
 }
 
-setup_rpmfusion() {
-  echo ">> Configurando RPM Fusion"
-  run sudo dnf install -y \
-    https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm \
-    https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm
-}
-
-# --- LIMPEZA DE BLOATWARE (SISTEMA LIMPO) ---
-
 remove_bloat() {
-  echo ">> Removendo Apps Nativos e Bloatware"
+  echo ">> [LIMPEZA] Removendo apenas o desnecessário (Mantendo Calendário/Contatos)"
   run sudo dnf remove -y \
     libreoffice\* \
     totem\* \
     gnome-music \
     rhythmbox \
-    cheese \
     gnome-tour \
     mediawriter \
-    gnome-contacts \
     gnome-maps \
     gnome-weather \
-    gnome-clocks \
-    gnome-connections \
-    gnome-software-plugin-flatpak # Opcional: se preferir gerenciar flatpak via terminal
+    gnome-connections
   
   run sudo dnf autoremove -y
 }
 
-# --- INSTALAÇÃO DE APPS (BASEADO NO SEU PERFIL) ---
-
-install_apps() {
-  echo ">> Instalando Apps Essenciais e Suporte Visual"
+install_essentials() {
+  echo ">> [RPM] Instalando Base e Suporte Visual"
   run sudo dnf install -y \
     gnome-tweaks gnome-extensions-app papirus-icon-theme \
-    ffmpeg ffmpeg-libs libavcodec-freeworld \
-    vlc easyeffects audacity git wget curl
-    
-  # Adicionando suporte à NVIDIA se detectada (Útil para o OptiPlex)
-  if lspci | grep -qi nvidia; then
-    run sudo dnf install -y akmod-nvidia xorg-x11-drv-nvidia-cuda nvidia-vaapi-driver
-  fi
+    ffmpeg ffmpeg-libs libavcodec-freeworld vlc \
+    easyeffects git wget curl piper solaar cameractrls
 }
 
 install_flatpaks() {
-  echo ">> Instalando Flatpaks (Incluindo seus apps dos prints)"
+  echo ">> [FLATPAK] Instalando apps dos seus prints (IA, Rede, Util)"
   run flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
   
-  # Aqui adicionei o Alpaca, Upscayl e Motrix que vi nos seus prints
+  # Adicionados conforme seus prints: Alpaca, PeaZip, NordVPN, Motrix...
   run flatpak install -y flathub \
     net.nokyan.Resources \
     com.github.tchx84.Flatseal \
     com.rafaelmardojai.Blanket \
     org.upscayl.Upscayl \
-    org.shotcut.Shotcut \
-    com.mattjakeman.ExtensionManager \
     com.github.jeffshee.Alpaca \
     com.motrix.Motrix \
-    org.gnome.gitlab.YaLTeR.VideoTrimmer
+    io.github.peazip.PeaZip \
+    com.nordvpn.NordVPN \
+    com.mattjakeman.ExtensionManager \
+    org.gnome.gitlab.YaLTeR.VideoTrimmer \
+    com.github.fabiocolacio.marker \
+    com.usebruno.Bruno
 }
 
-# --- EXECUÇÃO ---
+# Execução do Setup
+update_system
+remove_bloat
+install_essentials
+install_flatpaks
 
-run_all() {
-  update_system
-  setup_rpmfusion
-  remove_bloat
-  install_apps
-  install_flatpaks
-  
-  # Aplica o tema de ícones que você gosta
-  gsettings set org.gnome.desktop.interface icon-theme 'Papirus'
-  gsettings set org.gnome.desktop.interface color-scheme 'prefer-dark'
-  
-  echo "Finalizado! Reinicie o PC."
-}
+# Configurações de Interface (Papirus + Dark Mode)
+gsettings set org.gnome.desktop.interface icon-theme 'Papirus'
+gsettings set org.gnome.desktop.interface color-scheme 'prefer-dark'
 
-run_all
+echo "===================================================="
+echo "Setup Concluído! Calendário e Contatos preservados."
+echo "Reinicie para validar drivers e espaço no EFI."
+echo "===================================================="
