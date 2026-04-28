@@ -1,205 +1,91 @@
-
 #!/usr/bin/env bash
 
 set +e
 
-section() {
-  echo
-  echo "=============================="
-  echo ">> $1"
-  echo "=============================="
-}
-
-pause() {
-  read -rp "Enter para voltar..."
-}
-
-run() {
-  "$@"
-  if [ $? -ne 0 ]; then
-    echo "Aviso: comando falhou, continuando..."
-  fi
-}
+# --- CONFIGURAÇÕES DE SISTEMA ---
 
 update_system() {
-  section "Atualizando sistema"
+  echo ">> Limpando kernels antigos e ajustando limite EFI"
+  run sudo dnf remove $(dnf repoquery --installonly --latest=-1) -y
+  run sudo sed -i 's/installonly_limit=3/installonly_limit=2/' /etc/dnf/dnf.conf
   run sudo dnf upgrade --refresh -y
 }
 
 setup_rpmfusion() {
-  section "RPM Fusion"
+  echo ">> Configurando RPM Fusion"
   run sudo dnf install -y \
-    https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm \
-    https://download1.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm
+    https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm \
+    https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm
 }
 
-install_codecs() {
-  section "Codecs"
+# --- LIMPEZA DE BLOATWARE (SISTEMA LIMPO) ---
 
-  run sudo dnf swap -y ffmpeg-free ffmpeg --allowerasing
-
-  run sudo dnf install -y --skip-unavailable \
-    ffmpeg \
-    ffmpeg-libs \
-    libavcodec-freeworld \
-    vlc \
-    gstreamer1-libav \
-    gstreamer1-plugins-good \
-    gstreamer1-plugins-bad-free \
-    gstreamer1-plugins-bad-freeworld \
-    gstreamer1-plugins-ugly
-}
-
-install_apps_rpm() {
-  section "Apps RPM"
-
-  run sudo dnf install -y --skip-unavailable \
-    dnf-plugins-core \
-    curl \
-    wget \
-    git \
-    flatpak
-
-  if [ ! -f /etc/yum.repos.d/google-chrome.repo ]; then
-    run sudo dnf config-manager addrepo --from-repofile=https://dl.google.com/linux/chrome/rpm/stable/x86_64/google-chrome.repo
-  fi
-
-  if [ ! -f /etc/yum.repos.d/brave-browser.repo ]; then
-    run sudo dnf config-manager addrepo --from-repofile=https://brave-browser-rpm-release.s3.brave.com/brave-browser.repo
-    run sudo rpm --import https://brave-browser-rpm-release.s3.brave.com/brave-core.asc
-  fi
-
-  run sudo dnf install -y --skip-unavailable \
-    google-chrome-stable \
-    brave-browser \
-    firefox \
-    audacity \
-    brasero \
-    darktable \
-    handbrake \
-    inkscape \
-    easyeffects \
-    gnome-boxes \
-    gnome-calculator \
-    gnome-calendar \
-    gnome-characters \
-    gnome-connections \
+remove_bloat() {
+  echo ">> Removendo Apps Nativos e Bloatware"
+  run sudo dnf remove -y \
+    libreoffice\* \
+    totem\* \
+    gnome-music \
+    rhythmbox \
+    cheese \
+    gnome-tour \
+    mediawriter \
     gnome-contacts \
-    gnome-disk-utility \
-    gnome-font-viewer \
-    gnome-text-editor \
-    gnome-color-manager \
-    gnome-tweaks \
-    gnome-extensions-app \
-    papirus-icon-theme \
-    torbrowser-launcher
+    gnome-maps \
+    gnome-weather \
+    gnome-clocks \
+    gnome-connections \
+    gnome-software-plugin-flatpak # Opcional: se preferir gerenciar flatpak via terminal
+  
+  run sudo dnf autoremove -y
 }
 
-install_nvidia_if_needed() {
-  if lspci | grep -qi nvidia; then
-    section "NVIDIA detectada"
+# --- INSTALAÇÃO DE APPS (BASEADO NO SEU PERFIL) ---
 
-    run sudo dnf install -y --skip-unavailable \
-      akmod-nvidia \
-      xorg-x11-drv-nvidia-cuda \
-      nvidia-vaapi-driver
-  else
-    section "Sem NVIDIA detectada"
+install_apps() {
+  echo ">> Instalando Apps Essenciais e Suporte Visual"
+  run sudo dnf install -y \
+    gnome-tweaks gnome-extensions-app papirus-icon-theme \
+    ffmpeg ffmpeg-libs libavcodec-freeworld \
+    vlc easyeffects audacity git wget curl
+    
+  # Adicionando suporte à NVIDIA se detectada (Útil para o OptiPlex)
+  if lspci | grep -qi nvidia; then
+    run sudo dnf install -y akmod-nvidia xorg-x11-drv-nvidia-cuda nvidia-vaapi-driver
   fi
 }
 
 install_flatpaks() {
-  section "Flatpaks"
-
+  echo ">> Instalando Flatpaks (Incluindo seus apps dos prints)"
   run flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
-
+  
+  # Aqui adicionei o Alpaca, Upscayl e Motrix que vi nos seus prints
   run flatpak install -y flathub \
     net.nokyan.Resources \
     com.github.tchx84.Flatseal \
     com.rafaelmardojai.Blanket \
-    org.freecad.FreeCAD \
-    org.gnome.gitlab.YaLTeR.VideoTrimmer \
     org.upscayl.Upscayl \
     org.shotcut.Shotcut \
-    com.mattjakeman.ExtensionManager
+    com.mattjakeman.ExtensionManager \
+    com.github.jeffshee.Alpaca \
+    com.motrix.Motrix \
+    org.gnome.gitlab.YaLTeR.VideoTrimmer
 }
 
-install_freeoffice() {
-  section "FreeOffice"
+# --- EXECUÇÃO ---
 
-  run sudo dnf install -y curl
-
-  curl -fsSL https://softmaker.net/down/install-softmaker-freeoffice-2024.sh | sudo bash
-
-  if [ $? -ne 0 ]; then
-    echo "Aviso: instalação do FreeOffice falhou, continuando..."
-  fi
-}
-
-remove_bloat() {
-  section "Removendo apps padrão"
-
-  run sudo dnf remove -y \
-    libreoffice\* \
-    gnome-system-monitor \
-    totem \
-    totem-video-thumbnailer \
-    totem-pl-parser \
-    gnome-music \
-    rhythmbox \
-    cheese \
-    cheese-libs \
-    gnome-tour \
-    mediawriter
-
-  run sudo dnf autoremove -y
-}
-
-apply_visual() {
-  section "Visual GNOME"
-
-  run gsettings set org.gnome.desktop.interface icon-theme 'Papirus'
-  run gsettings set org.gnome.desktop.interface color-scheme 'prefer-dark'
-}
-
-verify_cleanup() {
-  section "Verificação final"
-
-  echo "Pacotes restantes relacionados:"
-  rpm -qa | grep -E "libreoffice|totem|cheese|gnome-music|rhythmbox" || echo "Nada encontrado. Limpo."
-}
-
-full_setup() {
+run_all() {
   update_system
   setup_rpmfusion
-  install_codecs
-  install_apps_rpm
-  install_nvidia_if_needed
-  install_freeoffice
-  install_flatpaks
   remove_bloat
-  apply_visual
-  verify_cleanup
-
-  section "Finalizado"
-  echo "Reinicie o sistema."
+  install_apps
+  install_flatpaks
+  
+  # Aplica o tema de ícones que você gosta
+  gsettings set org.gnome.desktop.interface icon-theme 'Papirus'
+  gsettings set org.gnome.desktop.interface color-scheme 'prefer-dark'
+  
+  echo "Finalizado! Reinicie o PC."
 }
 
-while true; do
-  clear
-  echo "===== Fedora-Y2K ====="
-  echo
-  echo "1) Rodar tudo"
-  echo "2) Atualizar sistema"
-  echo "0) Sair"
-  echo
-
-  read -rp "Escolha: " opt
-
-  case $opt in
-    1) full_setup; pause ;;
-    2) update_system; pause ;;
-    0) exit ;;
-    *) echo "Opção inválida"; sleep 1 ;;
-  esac
-done
+run_all
