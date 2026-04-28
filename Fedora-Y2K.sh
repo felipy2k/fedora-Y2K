@@ -42,18 +42,13 @@ show_menu() {
   echo "║  [4] Apenas instalar pacotes RPM                         ║"
   echo "║  [5] Apenas instalar Flatpaks                            ║"
   echo "║  [6] Apenas instalar driver NVIDIA                       ║"
-  echo "║  [7] Apenas aplicar configurações visuais                ║"
-  echo "║  [8] Verificação final                                   ║"
+  echo "║  [7] Apenas instalar extensões GNOME                     ║"
+  echo "║  [8] Apenas aplicar configurações visuais                ║"
+  echo "║  [9] Verificação final                                   ║"
   echo "║  [0] Sair                                                ║"
   echo "╚═══════════════════════════════════════════════════════════╝"
   echo -e "${NC}"
   read -rp "  Escolha uma opção: " CHOICE
-}
-
-update_system() {
-  info "[SISTEMA] Atualizando sistema"
-  try sudo sed -i 's/^installonly_limit=.*/installonly_limit=2/' /etc/dnf/dnf.conf
-  try sudo dnf upgrade --refresh -y
 }
 
 add_repos() {
@@ -83,6 +78,12 @@ EOF
   try sudo dnf makecache
 }
 
+update_system() {
+  info "[SISTEMA] Atualizando sistema"
+  try sudo sed -i 's/^installonly_limit=.*/installonly_limit=2/' /etc/dnf/dnf.conf
+  try sudo dnf upgrade --refresh -y
+}
+
 install_codecs() {
   info "[CODECS] Instalando codecs e VLC"
 
@@ -103,61 +104,6 @@ install_codecs() {
     gstreamer1-plugin-openh264
 }
 
-remove_bloat() {
-  info "[LIMPEZA] Removendo bloatware"
-
-  try sudo dnf remove -y \
-    'libreoffice*' \
-    totem \
-    totem-video-thumbnailer \
-    gnome-music \
-    rhythmbox \
-    cheese \
-    gnome-tour \
-    mediawriter \
-    gnome-system-monitor \
-    yelp \
-    dconf-editor \
-    brasero \
-    gnome-software \
-    gnome-extensions-app \
-    htop \
-    piper
-
-  try flatpak uninstall -y \
-    org.freedesktop.Piper \
-    org.gnome.Totem \
-    org.gnome.Music \
-    org.gnome.Cheese \
-    org.gnome.Software \
-    org.gnome.Extensions \
-    org.gnome.Help \
-    com.usebruno.Bruno
-
-  try sudo dnf autoremove -y
-}
-
-install_nvidia() {
-  info "[NVIDIA] Detectando GPU"
-
-  if ! lspci | grep -qiE "nvidia|geforce|quadro|tesla"; then
-    warning "Nenhuma GPU NVIDIA detectada. Pulando."
-    return
-  fi
-
-  step "GPU NVIDIA detectada"
-
-  try sudo dnf install -y --skip-unavailable \
-    akmod-nvidia \
-    xorg-x11-drv-nvidia \
-    xorg-x11-drv-nvidia-cuda \
-    xorg-x11-drv-nvidia-power \
-    nvidia-settings \
-    nvidia-vaapi-driver
-
-  try sudo akmods --force
-}
-
 install_rpms() {
   info "[RPM] Instalando pacotes RPM"
 
@@ -170,27 +116,45 @@ install_rpms() {
     curl \
     flatpak \
     fastfetch \
+    papirus-icon-theme \
     google-chrome-stable \
     brave-browser \
     firefox \
+    torbrowser-launcher \
+    vlc \
     audacity \
     darktable \
     handbrake-gui \
     inkscape \
     easyeffects \
+    gimp \
+    obs-studio \
     gnome-tweaks \
+    baobab \
+    nautilus \
+    deja-dup \
     gnome-boxes \
     gnome-calculator \
     gnome-calendar \
+    snapshot \
     gnome-characters \
+    gnome-abrt \
     gnome-connections \
     gnome-contacts \
+    simple-scan \
     gnome-disk-utility \
-    gnome-font-viewer \
     gnome-text-editor \
+    gnome-font-viewer \
     gnome-color-manager \
-    papirus-icon-theme \
-    vlc
+    gnome-extensions-app \
+    gnome-software \
+    gnome-clocks \
+    gnome-logs \
+    gnome-terminal \
+    evince \
+    loupe \
+    timeshift \
+    solaar
 }
 
 install_freeoffice() {
@@ -216,6 +180,7 @@ install_flatpaks() {
     https://flathub.org/repo/flathub.flatpakrepo
 
   FLATPAK_IDS=(
+    com.mattjakeman.ExtensionManager
     net.nokyan.Resources
     com.github.tchx84.Flatseal
     com.rafaelmardojai.Blanket
@@ -223,12 +188,113 @@ install_flatpaks() {
     org.freecad.FreeCAD
     org.upscayl.Upscayl
     org.shotcut.Shotcut
+    org.gnome.gitlab.YaLTeR.VideoTrimmer
+    com.jeffser.Alpaca
+    hu.irl.cameractrls
+    net.fasterland.converseen
+    net.dreamchess.dreamchess
+    app.devsuite.Exhibit
+    com.github.phase1geo.Minder
+    com.motrix.Motrix
+    io.github.nozwock.Packet
+    io.github.peazip.PeaZip
+    org.gnome.Podcasts
+    com.system76.Popsicle
+    com.poweriso.PowerISO
+    nl.hjdskes.gcolor3
+    de.haeckerfelix.Shortwave
+    com.vixalien.sticky
+    io.gitlab.adhami3310.Converter
+    io.github.maniacx.BudsLink
+    com.usebruno.Bruno
   )
 
   for app in "${FLATPAK_IDS[@]}"; do
     step "$app"
     try flatpak install -y flathub "$app"
   done
+}
+
+install_nvidia() {
+  info "[NVIDIA] Detectando GPU"
+
+  if ! lspci | grep -qiE "nvidia|geforce|quadro|tesla"; then
+    warning "Nenhuma GPU NVIDIA detectada. Pulando."
+    return
+  fi
+
+  try sudo dnf install -y --skip-unavailable \
+    akmod-nvidia \
+    xorg-x11-drv-nvidia \
+    xorg-x11-drv-nvidia-cuda \
+    xorg-x11-drv-nvidia-power \
+    nvidia-settings \
+    nvidia-vaapi-driver
+
+  try sudo akmods --force
+}
+
+install_gnome_extensions() {
+  info "[EXTENSÕES] Instalando extensões GNOME"
+
+  try sudo dnf install -y --skip-unavailable \
+    gnome-extensions-app \
+    pipx
+
+  export PATH="$HOME/.local/bin:$PATH"
+
+  if ! command -v gext &>/dev/null; then
+    step "Instalando gnome-extensions-cli"
+    try pipx install gnome-extensions-cli
+  fi
+
+  export PATH="$HOME/.local/bin:$PATH"
+
+  EXTENSIONS=(
+    appindicatorsupport@rgcjonas.gmail.com
+    caffeine@patapon.info
+    dash-to-dock@micxgx.gmail.com
+    gsconnect@andyholmes.github.io
+    tilingshell@ferrarodomenico.com
+  )
+
+  if command -v gext &>/dev/null; then
+    for ext in "${EXTENSIONS[@]}"; do
+      step "$ext"
+      try gext install "$ext"
+      try gext enable "$ext"
+    done
+  else
+    warning "gext não disponível. Instale pelo Extension Manager."
+    echo "Extensões:"
+    printf '  - %s\n' "${EXTENSIONS[@]}"
+  fi
+}
+
+remove_bloat() {
+  info "[LIMPEZA] Removendo somente o que saiu da lista"
+
+  try sudo dnf remove -y \
+    'libreoffice*' \
+    brasero \
+    totem \
+    totem-video-thumbnailer \
+    gnome-music \
+    rhythmbox \
+    cheese \
+    gnome-tour \
+    mediawriter \
+    gnome-system-monitor \
+    yelp \
+    dconf-editor \
+    htop \
+    piper
+
+  try flatpak uninstall -y \
+    org.freedesktop.Piper \
+    org.gnome.Help
+
+  try sudo dnf autoremove -y
 }
 
 apply_settings() {
@@ -245,15 +311,15 @@ verify_final() {
 
   echo
   echo "Pacotes que deveriam ter saído:"
-  rpm -qa | grep -E "libreoffice|totem|cheese|gnome-music|rhythmbox|gnome-system-monitor|yelp|dconf-editor|brasero|gnome-software|gnome-extensions-app|htop|piper" || ok "Nada crítico encontrado."
+  rpm -qa | grep -E "libreoffice|^brasero|^totem|totem-video-thumbnailer|^cheese|gnome-music|rhythmbox|gnome-tour|mediawriter|gnome-system-monitor|yelp|dconf-editor|^htop|^piper" || ok "Nada crítico encontrado."
+
+  echo
+  echo "Pacotes que devem existir:"
+  rpm -qa | grep -E "google-chrome-stable|brave-browser|firefox|vlc|audacity|darktable|handbrake|inkscape|easyeffects|gimp|obs-studio|gnome-software|gnome-extensions-app|papirus|softmaker|freeoffice|solaar|timeshift|deja-dup" || true
 
   echo
   echo "Flatpaks esperados:"
-  flatpak list --app | grep -E "Resources|Flatseal|Blanket|FreeCAD|Upscayl|Shotcut|FileShredder" || warning "Algum Flatpak esperado pode não ter instalado."
-
-  echo
-  echo "FreeOffice:"
-  rpm -qa | grep -i softmaker || warning "FreeOffice não encontrado via RPM."
+  flatpak list --app | grep -E "Alpaca|Resources|Flatseal|Blanket|FileShredder|FreeCAD|Upscayl|Shotcut|Video|Cameractrls|Converseen|DreamChess|Exhibit|Minder|Motrix|Packet|PeaZip|Podcasts|Popsicle|PowerISO|Shortwave|Sticky|Switcheroo|BudsLink|Bruno" || warning "Algum Flatpak esperado pode não ter instalado."
 }
 
 run_all() {
@@ -268,6 +334,7 @@ run_all() {
   install_nvidia
   install_freeoffice
   install_flatpaks
+  install_gnome_extensions
   remove_bloat
   apply_settings
   verify_final
@@ -286,8 +353,9 @@ while true; do
     4) add_repos; install_rpms; install_freeoffice ;;
     5) install_flatpaks ;;
     6) add_repos; install_nvidia ;;
-    7) apply_settings ;;
-    8) verify_final ;;
+    7) install_gnome_extensions ;;
+    8) apply_settings ;;
+    9) verify_final ;;
     0) echo "Saindo."; exit 0 ;;
     *) warning "Opção inválida." ;;
   esac
