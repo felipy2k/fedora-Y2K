@@ -1,3 +1,4 @@
+
 #!/usr/bin/env bash
 
 # Fedora-Y2K
@@ -37,9 +38,10 @@ setup_rpmfusion() {
 
 install_codecs() {
   section "Codecs"
+
   run sudo dnf swap -y ffmpeg-free ffmpeg --allowerasing
 
-  run sudo dnf install -y \
+  run sudo dnf install -y --skip-unavailable \
     ffmpeg \
     vlc \
     gstreamer1-libav \
@@ -52,18 +54,23 @@ install_codecs() {
 install_apps_rpm() {
   section "Apps RPM"
 
-  run sudo dnf install -y dnf-plugins-core curl flatpak
+  run sudo dnf install -y --skip-unavailable \
+    dnf-plugins-core \
+    curl \
+    flatpak
 
+  # Google Chrome
   if [ ! -f /etc/yum.repos.d/google-chrome.repo ]; then
     run sudo dnf config-manager addrepo --from-repofile=https://dl.google.com/linux/chrome/rpm/stable/x86_64/google-chrome.repo
   fi
 
+  # Brave
   if [ ! -f /etc/yum.repos.d/brave-browser.repo ]; then
     run sudo dnf config-manager addrepo --from-repofile=https://brave-browser-rpm-release.s3.brave.com/brave-browser.repo
     run sudo rpm --import https://brave-browser-rpm-release.s3.brave.com/brave-core.asc
   fi
 
-  run sudo dnf install -y \
+  run sudo dnf install -y --skip-unavailable \
     google-chrome-stable \
     brave-browser \
     audacity \
@@ -73,6 +80,19 @@ install_apps_rpm() {
     gnome-tweaks \
     gnome-extensions-app \
     papirus-icon-theme
+}
+
+install_nvidia_if_needed() {
+  if lspci | grep -qi nvidia; then
+    section "NVIDIA detectada"
+
+    run sudo dnf install -y --skip-unavailable \
+      akmod-nvidia \
+      xorg-x11-drv-nvidia-cuda \
+      nvidia-vaapi-driver
+  else
+    section "Sem NVIDIA detectada"
+  fi
 }
 
 install_flatpaks() {
@@ -89,19 +109,13 @@ install_flatpaks() {
 
 install_freeoffice() {
   section "FreeOffice"
-  run sudo dnf install -y curl
-  curl -fsSL https://softmaker.net/down/install-softmaker-freeoffice-2024.sh | sudo bash
-}
 
-install_nvidia_if_needed() {
-  if lspci | grep -qi nvidia; then
-    section "NVIDIA detectada"
-    run sudo dnf install -y \
-      akmod-nvidia \
-      xorg-x11-drv-nvidia-cuda \
-      nvidia-vaapi-driver
-  else
-    section "Sem NVIDIA detectada"
+  run sudo dnf install -y curl
+
+  curl -fsSL https://softmaker.net/down/install-softmaker-freeoffice-2024.sh | sudo bash
+
+  if [ $? -ne 0 ]; then
+    echo "Aviso: instalação do FreeOffice falhou, continuando..."
   fi
 }
 
@@ -121,6 +135,7 @@ remove_bloat() {
 
 apply_visual() {
   section "Visual GNOME"
+
   run gsettings set org.gnome.desktop.interface icon-theme 'Papirus'
   run gsettings set org.gnome.desktop.interface color-scheme 'prefer-dark'
 }
