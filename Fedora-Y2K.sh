@@ -2,7 +2,7 @@
 #!/usr/bin/env bash
 
 # Fedora-Y2K
-# Pós-instalação Fedora: apps, codecs, FreeOffice, Papirus, Flatpak e NVIDIA automática.
+# Pós-instalação Fedora com apps, codecs, FreeOffice, Papirus, Flatpak e NVIDIA automática.
 
 set +e
 
@@ -43,6 +43,8 @@ install_codecs() {
 
   run sudo dnf install -y --skip-unavailable \
     ffmpeg \
+    ffmpeg-libs \
+    libavcodec-freeworld \
     vlc \
     gstreamer1-libav \
     gstreamer1-plugins-good \
@@ -57,14 +59,14 @@ install_apps_rpm() {
   run sudo dnf install -y --skip-unavailable \
     dnf-plugins-core \
     curl \
+    wget \
+    git \
     flatpak
 
-  # Google Chrome
   if [ ! -f /etc/yum.repos.d/google-chrome.repo ]; then
     run sudo dnf config-manager addrepo --from-repofile=https://dl.google.com/linux/chrome/rpm/stable/x86_64/google-chrome.repo
   fi
 
-  # Brave
   if [ ! -f /etc/yum.repos.d/brave-browser.repo ]; then
     run sudo dnf config-manager addrepo --from-repofile=https://brave-browser-rpm-release.s3.brave.com/brave-browser.repo
     run sudo rpm --import https://brave-browser-rpm-release.s3.brave.com/brave-core.asc
@@ -73,13 +75,27 @@ install_apps_rpm() {
   run sudo dnf install -y --skip-unavailable \
     google-chrome-stable \
     brave-browser \
+    firefox \
     audacity \
-    inkscape \
+    brasero \
     darktable \
     handbrake \
+    inkscape \
+    easyeffects \
+    gnome-boxes \
+    gnome-calculator \
+    gnome-calendar \
+    gnome-characters \
+    gnome-connections \
+    gnome-contacts \
+    gnome-disk-utility \
+    gnome-font-viewer \
+    gnome-text-editor \
+    gnome-color-manager \
     gnome-tweaks \
     gnome-extensions-app \
-    papirus-icon-theme
+    papirus-icon-theme \
+    torbrowser-launcher
 }
 
 install_nvidia_if_needed() {
@@ -104,7 +120,11 @@ install_flatpaks() {
     net.nokyan.Resources \
     com.github.tchx84.Flatseal \
     com.rafaelmardojai.Blanket \
-    org.freecad.FreeCAD
+    org.freecad.FreeCAD \
+    org.gnome.gitlab.YaLTeR.VideoTrimmer \
+    org.upscayl.Upscayl \
+    org.shotcut.Shotcut \
+    com.mattjakeman.ExtensionManager
 }
 
 install_freeoffice() {
@@ -125,8 +145,13 @@ remove_bloat() {
   run sudo dnf remove -y \
     libreoffice\* \
     gnome-system-monitor \
-    cheese \
     totem \
+    totem-video-thumbnailer \
+    totem-pl-parser \
+    gnome-music \
+    rhythmbox \
+    cheese \
+    cheese-libs \
     gnome-tour \
     mediawriter
 
@@ -140,6 +165,13 @@ apply_visual() {
   run gsettings set org.gnome.desktop.interface color-scheme 'prefer-dark'
 }
 
+verify_cleanup() {
+  section "Verificação final"
+
+  echo "Pacotes que ainda sobraram relacionados a LibreOffice/Totem/Cheese/Music:"
+  rpm -qa | grep -E "libreoffice|totem|cheese|gnome-music|rhythmbox" || echo "Nada encontrado. Limpo."
+}
+
 full_setup() {
   update_system
   setup_rpmfusion
@@ -150,6 +182,7 @@ full_setup() {
   install_flatpaks
   remove_bloat
   apply_visual
+  verify_cleanup
 
   section "Finalizado"
   echo "Reinicie o sistema."
