@@ -1,3 +1,4 @@
+
 #!/usr/bin/env bash
 
 # Fedora-Y2K (versão simplificada)
@@ -94,15 +95,16 @@ while true; do
   clear
   echo "===== Fedora-Y2K ====="
   echo
-  echo "1) Setup completo"
-  echo "2) Atualizar sistema"
-  echo "3) Instalar codecs"
-  echo "4) Instalar apps"
-  echo "5) Instalar NVIDIA"
-  echo "6) Instalar FreeOffice"
-  echo "7) Flatpak extras"
-  echo "8) Remover apps padrão"
-  echo "0) Sair"
+  echo "1) Setup completo (sem NVIDIA)"
+  echo "2) Setup completo + NVIDIA"
+  echo "3) Atualizar sistema"
+  echo "4) Instalar codecs"
+  echo "5) Instalar apps"
+  echo "6) Instalar NVIDIA"
+  echo "7) Instalar FreeOffice"
+  echo "8) Flatpak extras"
+  echo "9) Remover apps padrão"
+  echo "0) S
   echo
 
   read -rp "Escolha: " opt
@@ -131,4 +133,3 @@ while true; do
   esac
 
 done
-
