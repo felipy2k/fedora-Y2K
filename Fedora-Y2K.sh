@@ -1,9 +1,6 @@
 
 #!/usr/bin/env bash
 
-# Fedora-Y2K
-# Pós-instalação Fedora com apps, codecs, FreeOffice, Papirus, Flatpak e NVIDIA automática.
-
 set +e
 
 section() {
@@ -168,7 +165,7 @@ apply_visual() {
 verify_cleanup() {
   section "Verificação final"
 
-  echo "Pacotes que ainda sobraram relacionados a LibreOffice/Totem/Cheese/Music:"
+  echo "Pacotes restantes relacionados:"
   rpm -qa | grep -E "libreoffice|totem|cheese|gnome-music|rhythmbox" || echo "Nada encontrado. Limpo."
 }
 
