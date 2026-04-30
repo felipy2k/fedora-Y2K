@@ -33,7 +33,7 @@ show_menu() {
   clear
   echo -e "${BOLD}${BLUE}"
   echo "╔═══════════════════════════════════════════════════════════════╗"
-  echo "║           Fedora ${FEDORA_VER} — Setup Personalizado          ║"
+  echo "║              Fedora — Setup Personalizado                     ║"
   echo "║           Usuário: ${USER}                                    ║"
   echo "╠═══════════════════════════════════════════════════════════════╣"
   echo "║  [1] Executar TUDO (recomendado)                             ║"
@@ -239,7 +239,6 @@ install_flatpaks() {
     app.devsuite.Exhibit                   # Visualizador 3D/modelos
     com.github.phase1geo.Minder            # Mapas mentais
     com.motrix.Motrix                      # Gerenciador de downloads
-    com.usebruno.Bruno                     # Cliente API REST
 
     # Entretenimento / Som / Outros
     net.dreamchess.dreamchess              # Xadrez
@@ -359,15 +358,22 @@ remove_bloat() {
     gnome-tour \
     mediawriter \
     gnome-system-monitor \
+    gnome-weather \
+    gnome-maps \
     yelp \
     dconf-editor \
     htop \
-    piper
+    piper \
+    'jack-audio-connection-kit*' \
+    qjackctl
 
   step "Removendo Flatpaks desnecessários"
   try flatpak uninstall -y \
     org.freedesktop.Piper \
-    org.gnome.Help 2>/dev/null || true
+    org.gnome.Help \
+    org.gnome.Showtime \
+    org.gnome.Decibels \
+    com.usebruno.Bruno 2>/dev/null || true
 
   step "Limpando dependências órfãs"
   try sudo dnf autoremove -y
@@ -381,10 +387,23 @@ remove_bloat() {
 apply_settings() {
   info "[VISUAL] Aplicando configurações GNOME"
 
-  try gsettings set org.gnome.desktop.interface icon-theme       'Papirus'
-  try gsettings set org.gnome.desktop.interface color-scheme     'prefer-dark'
-  try gsettings set org.gnome.desktop.interface clock-show-date  true
+  try gsettings set org.gnome.desktop.interface icon-theme         'Papirus'
+  try gsettings set org.gnome.desktop.interface color-scheme       'prefer-dark'
+  try gsettings set org.gnome.desktop.interface clock-show-date    true
   try gsettings set org.gnome.desktop.interface clock-show-seconds true
+
+  step "Baixando e aplicando wallpaper"
+  WALLPAPER_URL="https://images-assets.nasa.gov/image/art002e009285/art002e009285~large.jpg?w=1920&h=1280&fit=clip&crop=faces%2Cfocalpoint"
+  WALLPAPER_PATH="$HOME/Pictures/nasa-wallpaper.jpg"
+  mkdir -p "$HOME/Pictures"
+  if curl -fsSL "$WALLPAPER_URL" -o "$WALLPAPER_PATH"; then
+    try gsettings set org.gnome.desktop.background picture-uri      "file://$WALLPAPER_PATH"
+    try gsettings set org.gnome.desktop.background picture-uri-dark "file://$WALLPAPER_PATH"
+    try gsettings set org.gnome.desktop.background picture-options  'zoom'
+    ok "Wallpaper aplicado."
+  else
+    warning "Falha ao baixar wallpaper. Verifique a conexão."
+  fi
 
   ok "Configurações aplicadas."
 }
