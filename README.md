@@ -1,175 +1,171 @@
-# 🎩 Fedora Setup — Script de Pós-Instalação
+# 🎩 Fedora Post-Install Setup Script
 
-Script interativo de pós-instalação para **Fedora Workstation 41+** (testado no Fedora 44 com GNOME 50).  
-Automatiza repositórios, codecs, drivers, apps RPM, Flatpaks, extensões GNOME e configurações visuais — tudo com menu e execução modular.
+An interactive post-installation script for **Fedora Workstation 41+**, optimized for **Fedora 44 with GNOME 50**.  
+Automates repositories, codecs, drivers, RPM packages, Flatpaks, GNOME extensions, default apps, and visual settings — all through a modular menu.
 
 ---
 
-## ✨ O que o script faz
+## ✨ What the script does
 
-### 📦 Repositórios
-- RPM Fusion Free + Nonfree (com AppStream metadata para GNOME Software)
-- RPM Fusion Tainted (firmware e codecs extras)
-- `fedora-cisco-openh264` (H.264 para Firefox e WebRTC)
+### 📦 Repositories
+- RPM Fusion Free + Nonfree (with AppStream metadata for GNOME Software)
+- RPM Fusion Tainted (extra firmware and codecs)
+- `fedora-cisco-openh264` (H.264 for Firefox and WebRTC)
 - Google Chrome
-- Brave Browser
 
-### 🎬 Codecs de Mídia
-- Troca `ffmpeg-free` pelo `ffmpeg` completo (H.264, H.265, AAC, MP3, etc.)
-- `dnf group upgrade multimedia` + `sound-and-video` (método oficial)
-- GStreamer completo: `libav`, `ugly`, `bad-freeworld`, `openh264`
-- Aceleração de hardware VA-API/VDPAU autodetectada por GPU:
+### 🎬 Multimedia Codecs
+- Swaps `ffmpeg-free` for full `ffmpeg` (H.264, H.265, AAC, MP3, etc.)
+- `dnf group upgrade multimedia` + `sound-and-video` (official Fedora method)
+- Full GStreamer stack: `libav`, `ugly`, `bad-freeworld`, `openh264`
+- Hardware acceleration (VA-API/VDPAU) auto-detected by GPU:
   - **AMD** → `mesa-va-drivers-freeworld` + `mesa-vdpau-drivers-freeworld`
   - **Intel** → `intel-media-driver` + `libva-intel-driver`
 
-### 🖥️ Driver NVIDIA + CUDA
-- Autodetecção de GPU (filtra apenas dispositivos VGA/3D/Display)
-- Aviso e confirmação se **Secure Boot** estiver ativo
-- Instala via RPM Fusion: `akmod-nvidia`, `xorg-x11-drv-nvidia-cuda`, `nvidia-settings`, `nvidia-vaapi-driver`
-- Compila o módulo com `akmods --force` e regenera o initramfs com `dracut --force`
-- Habilita serviços de energia (`nvidia-hibernate`, `nvidia-resume`, `nvidia-suspend`)
-- Pergunta interativamente se deseja o **CUDA Toolkit completo** (nvcc, cuBLAS, headers) via repo oficial da NVIDIA, com exclusão dos pacotes que conflitam com o RPM Fusion
+### 🖥️ NVIDIA Driver + CUDA
+- GPU auto-detection filtered to VGA/3D/Display class devices only
+- Secure Boot warning with confirmation prompt before proceeding
+- Installs via RPM Fusion: `akmod-nvidia`, `xorg-x11-drv-nvidia-cuda`, `nvidia-settings`, `nvidia-vaapi-driver`
+- Builds the kernel module with `akmods --force` and regenerates initramfs via `dracut --force`
+- Enables power management services (`nvidia-hibernate`, `nvidia-resume`, `nvidia-suspend`)
+- Optional: adds the official NVIDIA CUDA repository for the full Toolkit (`nvcc`, cuBLAS, headers), with automatic conflict exclusion against RPM Fusion packages
 
-### 📥 Pacotes RPM instalados
+### 📥 RPM Packages Installed
 
-| Categoria | Apps |
+| Category | Apps |
 |---|---|
-| Navegadores | Firefox, Google Chrome, Brave, Tor Browser |
-| Multimídia | VLC, Audacity, Darktable, Handbrake, EasyEffects, OBS Studio |
-| Gráficos | GIMP, Inkscape |
+| Browsers | Firefox, Google Chrome, Tor Browser |
+| Multimedia | VLC, Audacity, Darktable, Handbrake, EasyEffects, OBS Studio |
+| Graphics / 3D | GIMP, Inkscape, Blender |
+| Gaming | Steam |
 | GNOME Apps | Tweaks, Baobab, Déjà Dup, Boxes, Calculator, Calendar, Snapshot, Characters, Connections, Contacts, Simple Scan, Disk Utility, Text Editor, Font Viewer, Color Manager, Software, Clocks, Logs, Evince, Loupe |
-| Utilitários | Timeshift, Solaar, fastfetch, pipx |
-| Office | FreeOffice 2024 (instalador oficial) |
+| Utilities | Timeshift, Solaar, fastfetch, pipx |
+| Office | FreeOffice 2024 (via official SoftMaker installer) |
 
 ### 📱 Flatpaks (Flathub)
 
-| Categoria | Apps |
+| Category | Apps |
 |---|---|
-| Sistema | Extension Manager, Resources, Flatseal, PeaZip, Popsicle, File Shredder (Raider), LocalSend, Paper Clip, Switcheroo |
-| Multimídia | Shotcut, Video Trimmer, Camera Ctrls, Converseen |
-| Produtividade | FreeCAD, Upscayl, Exhibit (3D Viewer), Minder, Motrix |
-| Entretenimento | DreamChess, Blanket, Shortwave, Podcasts, Gcolor3, Sticky Notes, Alpaca |
+| System | Extension Manager, Resources, Flatseal, PeaZip, Popsicle, File Shredder (Raider), LocalSend, Switcheroo |
+| Multimedia | Shotcut, Video Trimmer, Camera Ctrls, Converseen |
+| Productivity | FreeCAD, Upscayl, Exhibit (3D Viewer), Minder, Motrix |
+| Entertainment | DreamChess, Blanket, Shortwave, Podcasts, Gcolor3, Sticky Notes, Alpaca |
 
-### 🧩 Extensões GNOME (via `gnome-extensions-cli`)
+### 🧩 GNOME Extensions (via `gnome-extensions-cli`)
 - AppIndicator Support
 - Caffeine
 - Dash to Dock
-- GSConnect (KDE Connect para GNOME)
+- GSConnect (KDE Connect for GNOME)
 - Tiling Shell
 
-### 🧹 Bloatware removido
+### 🎯 Default Applications
+- **Web browser** → Google Chrome (`xdg-settings`)
+- **Video player** → VLC (set for all common video MIME types via `xdg-mime`)
+- **Audio player** → VLC (set for all common audio MIME types via `xdg-mime`)
 
-| Tipo | O que é removido |
+### 🧹 Bloatware Removed
+
+| Type | What is removed |
 |---|---|
-| Office | LibreOffice (substituído pelo FreeOffice) |
-| Vídeo | Showtime, Totem, totem-video-thumbnailer |
-| Áudio | Decibels, GNOME Music, Rhythmbox |
-| Terminal | GNOME Terminal (mantém **Ptyxis**, padrão do Fedora 41+) |
-| Extensões RPM | gnome-extensions-app (substituído pelo Extension Manager Flatpak) |
-| Outros | Cheese, GNOME Tour, Mediawriter, GNOME System Monitor, Meteorologia, Mapas, Yelp, dconf-editor, htop, Piper, JACK |
+| Office | LibreOffice (replaced by FreeOffice) |
+| Video | Showtime, Totem, totem-video-thumbnailer |
+| Audio | Decibels, GNOME Music, Rhythmbox |
+| Terminal | GNOME Terminal (keeps **Ptyxis**, default since Fedora 41) |
+| Extensions | gnome-extensions-app RPM (replaced by Extension Manager Flatpak) |
+| Other | Cheese, GNOME Tour, Mediawriter, GNOME System Monitor, Weather, Maps, Yelp, dconf-editor, htop, Piper, JACK |
 | Flatpaks | Showtime, Decibels, Totem, GNOME Music, Piper, GNOME Help, Bruno |
 
-### 🎨 Configurações visuais
-- Tema de ícones: **Papirus**
-- Esquema de cores: **Modo escuro**
-- Relógio com data e segundos visíveis
-- Wallpaper da NASA aplicado automaticamente
+### 🎨 Visual Settings
+- Icon theme: **Papirus**
+- Color scheme: **Dark mode**
+- Clock with date and seconds visible
+- NASA wallpaper applied automatically
 
 ---
 
-## 🚀 Como usar
+## 🚀 How to use
 
 ```bash
-# Clone o repositório
-git clone https://github.com/SEU_USUARIO/fedora-setup.git
+# Clone the repository
+git clone https://github.com/YOUR_USERNAME/fedora-setup.git
 cd fedora-setup
 
-# Dê permissão de execução
+# Make it executable
 chmod +x fedora-setup.sh
 
-# Execute como usuário normal (NÃO como root)
+# Run as a regular user (NOT as root)
 ./fedora-setup.sh
 ```
 
-> ⚠️ **Não rode como root.** O script usa `sudo` internamente onde necessário.
+> ⚠️ **Do not run as root.** The script uses `sudo` internally where needed.
 
 ---
 
-## 🗂️ Menu de opções
+## 🗂️ Menu
 
 ```
 ╔═══════════════════════════════════════════════════════════════╗
-║              Fedora — Setup Personalizado                     ║
+║          Fedora — Custom Post-Install Setup                   ║
 ╠═══════════════════════════════════════════════════════════════╣
-║  [1] Executar TUDO (recomendado)                             ║
-║  [2] Apenas atualizar sistema                                ║
-║  [3] Apenas remover bloatware                                ║
-║  [4] Apenas instalar pacotes RPM                             ║
-║  [5] Apenas instalar Flatpaks                                ║
-║  [6] Apenas instalar driver NVIDIA + CUDA                    ║
-║  [7] Apenas instalar extensões GNOME                         ║
-║  [8] Apenas aplicar configurações visuais                    ║
-║  [9] Verificação final                                       ║
-║  [0] Sair                                                    ║
-║  [r] Sair e reiniciar o sistema                              ║
+║  [1] Run EVERYTHING (recommended)                            ║
+║  [2] Update system only                                      ║
+║  [3] Remove bloatware only                                   ║
+║  [4] Install RPM packages only                               ║
+║  [5] Install Flatpaks only                                   ║
+║  [6] Install NVIDIA driver + CUDA only                       ║
+║  [7] Install GNOME extensions only                           ║
+║  [8] Apply visual settings only                              ║
+║  [9] Final verification                                      ║
+║  [0] Exit                                                    ║
+║  [r] Exit and reboot the system                              ║
 ╚═══════════════════════════════════════════════════════════════╝
 ```
 
-Cada etapa pode ser executada individualmente. A opção `[1] Executar TUDO` garante a **ordem correta**: instala tudo primeiro, remove o bloatware depois — evitando quebra de dependências.
+Each step can be run individually. Option **[1] Run EVERYTHING** ensures the correct order: install everything first, remove bloatware after — preventing dependency issues.
 
 ---
 
-## ⚙️ Requisitos
+## ⚙️ Requirements
 
-- Fedora Workstation **41 ou superior** (otimizado para Fedora 44 + GNOME 50)
-- Conexão com a internet
-- Usuário com acesso `sudo`
+- Fedora Workstation **41 or later** (optimized for Fedora 44 + GNOME 50)
+- Internet connection
+- A user account with `sudo` access
 
 ---
 
-## 📝 Notas importantes
+## 📝 Important Notes
 
 **NVIDIA + Secure Boot**  
-Se o Secure Boot estiver ativo, o script avisa e pede confirmação antes de instalar. Após a instalação, o módulo `akmod` precisa ser assinado manualmente. Consulte o guia: [RPM Fusion — Secure Boot](https://rpmfusion.org/Howto/Secure%20Boot)
+If Secure Boot is enabled, the script warns and requires confirmation before proceeding. After installation, the `akmod` kernel module must be manually signed. See the guide: [RPM Fusion — Secure Boot](https://rpmfusion.org/Howto/Secure%20Boot)
 
 **CUDA Toolkit**  
-O driver instalado via RPM Fusion já inclui suporte a CUDA para aplicativos (Blender, OBS, etc.). O CUDA Toolkit completo (com `nvcc`, cuBLAS e headers) é opcional e instalado via repositório oficial da NVIDIA mediante confirmação interativa.
+The RPM Fusion driver already includes CUDA runtime support for applications (Blender, OBS, etc.). The full CUDA Toolkit (`nvcc`, cuBLAS, headers) is optional and installed from the official NVIDIA repository upon interactive confirmation.
 
 **FreeOffice**  
-Instalado via script oficial da SoftMaker antes da remoção do LibreOffice, garantindo que nunca haja um momento sem suite de escritório disponível.
+Installed via the official SoftMaker script *before* LibreOffice is removed, ensuring no gap in office suite availability.
 
-**Controle Parental (malcontent)**  
-O pacote base `malcontent` é dependência do `gnome-control-center` e não pode ser removido sem quebrar o GNOME. O script não toca nele.
-
-**Falhas não bloqueiam**  
-O script usa a função `try()` — se um passo falhar (ex.: pacote já instalado, ou não disponível), ele registra o aviso e continua. Nenhum erro aborta o processo inteiro.
+**Non-blocking failures**  
+The script uses a `try()` function — if any step fails (package already installed, unavailable, etc.), it logs a warning and continues. No single failure aborts the entire process.
 
 ---
 
-## 📋 Verificação final
+## ✅ Final Verification
 
-A opção `[9]` roda uma checagem completa do sistema e reporta:
-- Pacotes indesejados ainda presentes
-- Pacotes RPM esperados instalados
-- Status dos codecs (ffmpeg completo vs. ffmpeg-free)
-- Flatpaks instalados
-- Status do driver NVIDIA e CUDA
-- Extensões GNOME ativas
+Option **[9]** runs a full system check and reports:
+- Unwanted packages still present
+- Expected RPM packages installed (including Blender and Steam)
+- Codec status (full ffmpeg vs. ffmpeg-free)
+- Default browser, video, and audio player
+- Installed Flatpaks
+- NVIDIA driver and CUDA status
+- Active GNOME extensions
 
 ---
 
-## 📄 Licença
+## 📄 License
 
-MIT — use, modifique e distribua à vontade.
+MIT — use, modify, and distribute freely.
 
-Como usar:
+How to use:
 git clone https://github.com/felipy2k/fedora-Y2K.git
 cd fedora-Y2K
 bash Fedora-Y2K.sh
-
-Observações:
-Não rode como root.
-O script pede sudo quando necessário.
-Requer internet.
-Reinicie o sistema após rodar tudo
-
