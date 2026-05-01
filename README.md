@@ -1,7 +1,7 @@
 # 🎩 Fedora Post-Install Setup Script
 
 An interactive post-installation script for **Fedora Workstation 41+**, optimized for **Fedora 44 with GNOME 50**.  
-Automates repositories, codecs, drivers, RPM packages, Flatpaks, GNOME extensions, default apps, and visual settings — all through a modular menu.
+Automates repositories, codecs, drivers, RPM packages, Flatpaks, GNOME extensions, default apps, and visual settings — all through a modular interactive menu.
 
 ---
 
@@ -14,16 +14,17 @@ Automates repositories, codecs, drivers, RPM packages, Flatpaks, GNOME extension
 - Google Chrome
 
 ### 🎬 Multimedia Codecs
-- Swaps `ffmpeg-free` for full `ffmpeg` (H.264, H.265, AAC, MP3, etc.)
-- `dnf group upgrade multimedia` + `sound-and-video` (official Fedora method)
+- Swaps `ffmpeg-free` for full `ffmpeg` (H.264, H.265, AAC, MP3, and more)
+- `dnf group upgrade multimedia` + `sound-and-video` (official Fedora/RPM Fusion method)
 - Full GStreamer stack: `libav`, `ugly`, `bad-freeworld`, `openh264`
 - Hardware acceleration (VA-API/VDPAU) auto-detected by GPU:
   - **AMD** → `mesa-va-drivers-freeworld` + `mesa-vdpau-drivers-freeworld`
   - **Intel** → `intel-media-driver` + `libva-intel-driver`
+  - **NVIDIA** → handled by the dedicated driver section below
 
 ### 🖥️ NVIDIA Driver + CUDA
-- GPU auto-detection filtered to VGA/3D/Display class devices only
-- Secure Boot warning with confirmation prompt before proceeding
+- GPU auto-detection filtered to VGA/3D/Display class devices only (avoids false positives)
+- Secure Boot detection with warning and confirmation prompt before proceeding
 - Installs via RPM Fusion: `akmod-nvidia`, `xorg-x11-drv-nvidia-cuda`, `nvidia-settings`, `nvidia-vaapi-driver`
 - Builds the kernel module with `akmods --force` and regenerates initramfs via `dracut --force`
 - Enables power management services (`nvidia-hibernate`, `nvidia-resume`, `nvidia-suspend`)
@@ -57,10 +58,11 @@ Automates repositories, codecs, drivers, RPM packages, Flatpaks, GNOME extension
 - GSConnect (KDE Connect for GNOME)
 - Tiling Shell
 
-### 🎯 Default Applications
-- **Web browser** → Google Chrome (`xdg-settings`)
-- **Video player** → VLC (set for all common video MIME types via `xdg-mime`)
-- **Audio player** → VLC (set for all common audio MIME types via `xdg-mime`)
+### 🎯 Default Applications & Settings
+- **Web browser** → Google Chrome
+- **Video player** → VLC (applied via `xdg-mime`, `gio mime`, and direct `mimeapps.list` write — three methods for reliability on modern GNOME)
+- **Audio player** → VLC (same three-method approach, covers 19 MIME types total)
+- **Title bar buttons** → Minimize + Maximize + Close enabled, positioned on the right
 
 ### 🧹 Bloatware Removed
 
@@ -78,6 +80,7 @@ Automates repositories, codecs, drivers, RPM packages, Flatpaks, GNOME extension
 - Icon theme: **Papirus**
 - Color scheme: **Dark mode**
 - Clock with date and seconds visible
+- Minimize and Maximize buttons enabled (right side of title bar)
 - NASA wallpaper applied automatically
 
 ---
@@ -135,10 +138,13 @@ Each step can be run individually. Option **[1] Run EVERYTHING** ensures the cor
 ## 📝 Important Notes
 
 **NVIDIA + Secure Boot**  
-If Secure Boot is enabled, the script warns and requires confirmation before proceeding. After installation, the `akmod` kernel module must be manually signed. See the guide: [RPM Fusion — Secure Boot](https://rpmfusion.org/Howto/Secure%20Boot)
+If Secure Boot is enabled, the script warns and requires confirmation before proceeding. After installation, the `akmod` kernel module must be manually signed. See: [RPM Fusion — Secure Boot](https://rpmfusion.org/Howto/Secure%20Boot)
 
 **CUDA Toolkit**  
-The RPM Fusion driver already includes CUDA runtime support for applications (Blender, OBS, etc.). The full CUDA Toolkit (`nvcc`, cuBLAS, headers) is optional and installed from the official NVIDIA repository upon interactive confirmation.
+The RPM Fusion driver already includes CUDA runtime support for applications (Blender, OBS, etc.). The full CUDA Toolkit (`nvcc`, cuBLAS, headers) is optional and installed from the official NVIDIA repository upon interactive confirmation, with automatic exclusion of packages that conflict with RPM Fusion.
+
+**VLC as default player**  
+GNOME's own `gnome-mimeapps.list` can override user-level defaults. The script uses three methods simultaneously — `xdg-mime`, `gio mime`, and direct writes to `~/.config/mimeapps.list` — to guarantee VLC is set as the default for all common audio and video formats.
 
 **FreeOffice**  
 Installed via the official SoftMaker script *before* LibreOffice is removed, ensuring no gap in office suite availability.
@@ -151,10 +157,11 @@ The script uses a `try()` function — if any step fails (package already instal
 ## ✅ Final Verification
 
 Option **[9]** runs a full system check and reports:
-- Unwanted packages still present
-- Expected RPM packages installed (including Blender and Steam)
+- Unwanted packages still present (including `gnome-terminal` and `gnome-extensions-app`)
+- Expected RPM packages installed (Blender, Steam, VLC, Chrome, etc.)
 - Codec status (full ffmpeg vs. ffmpeg-free)
-- Default browser, video, and audio player
+- Default browser, video player, and audio player — with pass/fail indicators
+- Title bar button layout confirmation
 - Installed Flatpaks
 - NVIDIA driver and CUDA status
 - Active GNOME extensions
