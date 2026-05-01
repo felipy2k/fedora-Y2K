@@ -18,12 +18,12 @@ ok()      { echo -e "  ${GREEN}✓ $*${NC}"; }
 
 try() {
   if ! "$@"; then
-    warning "Falhou, continuando: $*"
+    warning "Failed, continuing: $*"
   fi
 }
 
 if [[ "$EUID" -eq 0 ]]; then
-  fail "Não rode como root. Rode como usuário normal."
+  fail "Do not run as root. Run as a regular user."
   exit 1
 fi
 
@@ -33,40 +33,40 @@ show_menu() {
   clear
   echo -e "${BOLD}${BLUE}"
   echo "╔═══════════════════════════════════════════════════════════════╗"
-  echo "║              Fedora — Setup Personalizado                     ║"
-  echo "║           Usuário: ${USER}                                    ║"
+  echo "║          Fedora — Custom Post-Install Setup                   ║"
+  echo "║          User: ${USER}                                        ║"
   echo "╠═══════════════════════════════════════════════════════════════╣"
-  echo "║  [1] Executar TUDO (recomendado)                             ║"
-  echo "║  [2] Apenas atualizar sistema                                ║"
-  echo "║  [3] Apenas remover bloatware                                ║"
-  echo "║  [4] Apenas instalar pacotes RPM                             ║"
-  echo "║  [5] Apenas instalar Flatpaks                                ║"
-  echo "║  [6] Apenas instalar driver NVIDIA + CUDA                    ║"
-  echo "║  [7] Apenas instalar extensões GNOME                         ║"
-  echo "║  [8] Apenas aplicar configurações visuais                    ║"
-  echo "║  [9] Verificação final                                       ║"
-  echo "║  [0] Sair                                                    ║"
-  echo "║  [r] Sair e reiniciar o sistema                              ║"
+  echo "║  [1] Run EVERYTHING (recommended)                            ║"
+  echo "║  [2] Update system only                                      ║"
+  echo "║  [3] Remove bloatware only                                   ║"
+  echo "║  [4] Install RPM packages only                               ║"
+  echo "║  [5] Install Flatpaks only                                   ║"
+  echo "║  [6] Install NVIDIA driver + CUDA only                       ║"
+  echo "║  [7] Install GNOME extensions only                           ║"
+  echo "║  [8] Apply visual settings only                              ║"
+  echo "║  [9] Final verification                                      ║"
+  echo "║  [0] Exit                                                    ║"
+  echo "║  [r] Exit and reboot the system                              ║"
   echo "╚═══════════════════════════════════════════════════════════════╝"
   echo -e "${NC}"
-  read -rp "  Escolha uma opção: " CHOICE
+  read -rp "  Choose an option: " CHOICE
 }
 
 # ─────────────────────────────────────────────
 # REPOS
 # ─────────────────────────────────────────────
 add_repos() {
-  info "[REPOS] Adicionando repositórios"
+  info "[REPOS] Adding repositories"
 
   step "RPM Fusion (free + nonfree)"
   try sudo dnf install -y \
     "https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-${FEDORA_VER}.noarch.rpm" \
     "https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-${FEDORA_VER}.noarch.rpm"
 
-  step "Habilitando AppStream metadata do RPM Fusion no GNOME Software"
+  step "Enabling RPM Fusion AppStream metadata for GNOME Software"
   try sudo dnf install -y rpmfusion-free-release-tainted rpmfusion-nonfree-release-tainted 2>/dev/null || true
 
-  step "Habilitando repositório fedora-cisco-openh264 (necessário para Firefox/WebRTC)"
+  step "Enabling fedora-cisco-openh264 repo (required for Firefox/WebRTC)"
   try sudo dnf config-manager setopt fedora-cisco-openh264.enabled=1
 
   step "Google Chrome"
@@ -81,44 +81,38 @@ gpgkey=https://dl.google.com/linux/linux_signing_key.pub
 EOF
   fi
 
-  step "Brave Browser"
-  if [[ ! -f /etc/yum.repos.d/brave-browser.repo ]]; then
-    try sudo dnf config-manager addrepo --from-repofile=https://brave-browser-rpm-release.s3.brave.com/brave-browser.repo
-    try sudo rpm --import https://brave-browser-rpm-release.s3.brave.com/brave-core.asc
-  fi
-
   try sudo dnf makecache
 }
 
 # ─────────────────────────────────────────────
-# SISTEMA
+# SYSTEM UPDATE
 # ─────────────────────────────────────────────
 update_system() {
-  info "[SISTEMA] Atualizando sistema"
-  # Mantém apenas 2 kernels antigos para economizar espaço
+  info "[SYSTEM] Updating system"
+  # Keep only 2 old kernels to save disk space
   try sudo sed -i 's/^installonly_limit=.*/installonly_limit=2/' /etc/dnf/dnf.conf
   try sudo dnf upgrade --refresh -y
 }
 
 # ─────────────────────────────────────────────
-# CODECS — Método oficial Fedora 43+ (RPM Fusion)
-# Baseado em: docs.fedoraproject.org + RPM Fusion
+# CODECS — Official Fedora 43+ method (RPM Fusion)
+# Based on: docs.fedoraproject.org + RPM Fusion
 # ─────────────────────────────────────────────
 install_codecs() {
-  info "[CODECS] Instalando codecs multimídia (método oficial)"
+  info "[CODECS] Installing multimedia codecs (official method)"
 
-  step "Trocando ffmpeg-free pelo ffmpeg completo (com codecs proprietários)"
+  step "Swapping ffmpeg-free for full ffmpeg (with proprietary codecs)"
   try sudo dnf swap -y ffmpeg-free ffmpeg --allowerasing
 
-  step "Atualizando grupo @multimedia (resolve H.264, H.265, AAC, etc.)"
+  step "Upgrading @multimedia group (resolves H.264, H.265, AAC, etc.)"
   try sudo dnf group upgrade -y multimedia \
     --setopt="install_weak_deps=False" \
     --exclude=PackageKit-gstreamer-plugin
 
-  step "Atualizando grupo @sound-and-video"
+  step "Upgrading @sound-and-video group"
   try sudo dnf group upgrade -y sound-and-video
 
-  step "Pacotes GStreamer explícitos (garantia de cobertura)"
+  step "Explicit GStreamer packages (coverage guarantee)"
   try sudo dnf install -y --skip-unavailable \
     gstreamer1-libav \
     gstreamer1-plugins-base \
@@ -132,33 +126,33 @@ install_codecs() {
     lame-libs \
     mozilla-openh264
 
-  step "Aceleração de hardware de vídeo (VA-API/VDPAU)"
-  # Detecta GPU para aplicar drivers freeworld corretos
+  step "Hardware video acceleration (VA-API/VDPAU)"
+  # Auto-detects GPU to apply the correct freeworld drivers
   if lspci | grep -i 'vga\|3d\|display' | grep -qi 'amd\|radeon\|ati'; then
-    step "GPU AMD detectada — instalando mesa freeworld"
+    step "AMD GPU detected — installing mesa freeworld drivers"
     try sudo dnf swap -y mesa-va-drivers mesa-va-drivers-freeworld
     try sudo dnf swap -y mesa-vdpau-drivers mesa-vdpau-drivers-freeworld
   fi
 
   if lspci | grep -i 'vga\|3d\|display' | grep -qi 'intel'; then
-    step "GPU Intel detectada — instalando intel-media-driver"
+    step "Intel GPU detected — installing intel-media-driver"
     try sudo dnf install -y --skip-unavailable intel-media-driver libva-intel-driver
   fi
 }
 
 # ─────────────────────────────────────────────
 # RPMs
-# Instala TUDO antes de remover qualquer coisa
-# para não quebrar dependências
+# Install EVERYTHING before removing anything
+# to avoid breaking dependencies
 # ─────────────────────────────────────────────
 install_rpms() {
-  info "[RPM] Instalando pacotes RPM"
+  info "[RPM] Installing RPM packages"
 
   install_codecs
 
   try sudo dnf install -y --skip-unavailable \
     \
-    `# Ferramentas base` \
+    `# Base tools` \
     dnf-plugins-core \
     git \
     wget \
@@ -168,13 +162,12 @@ install_rpms() {
     pipx \
     papirus-icon-theme \
     \
-    `# Navegadores` \
+    `# Browsers` \
     google-chrome-stable \
-    brave-browser \
     firefox \
     torbrowser-launcher \
     \
-    `# Multimídia` \
+    `# Multimedia` \
     vlc \
     audacity \
     darktable \
@@ -182,9 +175,13 @@ install_rpms() {
     easyeffects \
     obs-studio \
     \
-    `# Gráficos / Edição` \
+    `# Graphics / Editing / 3D` \
     gimp \
     inkscape \
+    blender \
+    \
+    `# Gaming` \
+    steam \
     \
     `# GNOME Apps` \
     gnome-tweaks \
@@ -210,23 +207,23 @@ install_rpms() {
     evince \
     loupe \
     \
-    `# Utilitários` \
+    `# Utilities` \
     timeshift \
     solaar
 }
 
 # ─────────────────────────────────────────────
 # FREEOFFICE
-# Substitui o LibreOffice (removido depois)
+# Replaces LibreOffice (removed afterwards)
 # ─────────────────────────────────────────────
 install_freeoffice() {
-  info "[FREEOFFICE] Instalando FreeOffice 2024"
+  info "[FREEOFFICE] Installing FreeOffice 2024"
 
-  step "Baixando e executando instalador oficial"
+  step "Downloading and running official installer"
   if curl -fsSL https://softmaker.net/down/install-softmaker-freeoffice-2024.sh | sudo bash; then
-    ok "FreeOffice instalado com sucesso."
+    ok "FreeOffice installed successfully."
   else
-    warning "Falha ao instalar FreeOffice. Tente manualmente:"
+    warning "Failed to install FreeOffice. Try manually:"
     echo "  curl -fsSL https://softmaker.net/down/install-softmaker-freeoffice-2024.sh | sudo bash"
   fi
 }
@@ -235,48 +232,47 @@ install_freeoffice() {
 # FLATPAKS
 # ─────────────────────────────────────────────
 install_flatpaks() {
-  info "[FLATPAK] Instalando apps do Flathub"
+  info "[FLATPAK] Installing apps from Flathub"
 
   try flatpak remote-add --if-not-exists flathub \
     https://flathub.org/repo/flathub.flatpakrepo
 
   FLATPAK_IDS=(
-    # Utilitários do sistema
-    com.mattjakeman.ExtensionManager        # Gestor de Extensões GNOME
-    net.nokyan.Resources                    # Monitor de recursos
-    com.github.tchx84.Flatseal              # Permissões Flatpak
-    io.github.peazip.PeaZip                 # Compactador
-    com.system76.Popsicle                   # Gravador USB
-    com.github.ADBeveridge.Raider           # File Shredder (destruidor de arquivos)
-    org.localsend.localsend_app             # LocalSend (compartilhamento via LAN)
-    io.github.diegoivan.pdf_metadata_editor # Paper Clip (metadados PDF)
-    io.gitlab.adhami3310.Converter          # Switcheroo (conversor de imagens)
+    # System utilities
+    com.mattjakeman.ExtensionManager        # GNOME Extension Manager
+    net.nokyan.Resources                    # Resource monitor
+    com.github.tchx84.Flatseal              # Flatpak permissions manager
+    io.github.peazip.PeaZip                 # Archive manager
+    com.system76.Popsicle                   # USB image flasher
+    com.github.ADBeveridge.Raider           # File Shredder
+    org.localsend.localsend_app             # LocalSend (LAN file sharing)
+    io.gitlab.adhami3310.Converter          # Switcheroo (image format converter)
 
-    # Multimídia
-    org.shotcut.Shotcut                     # Editor de vídeo
-    org.gnome.gitlab.YaLTeR.VideoTrimmer    # Aparador de vídeo
-    hu.irl.cameractrls                      # Controles de câmera
-    net.fasterland.converseen               # Conversor de imagens em lote
+    # Multimedia
+    org.shotcut.Shotcut                     # Video editor
+    org.gnome.gitlab.YaLTeR.VideoTrimmer    # Video trimmer
+    hu.irl.cameractrls                      # Camera controls
+    net.fasterland.converseen               # Batch image converter
 
-    # Produtividade / Criatividade
-    org.freecad.FreeCAD                     # CAD 3D
-    org.upscayl.Upscayl                     # Upscale de imagens (IA)
-    io.github.nokse22.Exhibit               # Visualizador 3D/modelos
-    com.github.phase1geo.Minder             # Mapas mentais
-    com.motrix.Motrix                       # Gerenciador de downloads
+    # Productivity / Creativity
+    org.freecad.FreeCAD                     # 3D CAD
+    org.upscayl.Upscayl                     # AI image upscaler
+    io.github.nokse22.Exhibit               # 3D model viewer
+    com.github.phase1geo.Minder             # Mind mapping
+    com.motrix.Motrix                       # Download manager
 
-    # Entretenimento / Som / Outros
-    net.dreamchess.dreamchess               # Xadrez
-    com.rafaelmardojai.Blanket              # Sons ambiente
-    de.haeckerfelix.Shortwave               # Rádio online
+    # Entertainment / Sound / Other
+    net.dreamchess.dreamchess               # Chess
+    com.rafaelmardojai.Blanket              # Ambient sounds
+    de.haeckerfelix.Shortwave               # Internet radio
     org.gnome.Podcasts                      # Podcasts
-    nl.hjdskes.gcolor3                      # Seletor de cor
+    nl.hjdskes.gcolor3                      # Color picker
     com.vixalien.sticky                     # Sticky Notes
-    com.jeffser.Alpaca                      # Alpaca (LLM local)
+    com.jeffser.Alpaca                      # Alpaca (local LLM)
   )
 
   for app in "${FLATPAK_IDS[@]}"; do
-    # Ignora comentários inline
+    # Strip inline comments
     app="${app%%#*}"
     app="${app//[[:space:]]/}"
     [[ -z "$app" ]] && continue
@@ -287,34 +283,34 @@ install_flatpaks() {
 
 # ─────────────────────────────────────────────
 # NVIDIA + CUDA
-# Autodetecta GPU — instala apenas se encontrar
-# Filtra por VGA/3D/Display para evitar falsos positivos
+# Auto-detects GPU — installs only if found
+# Filters by VGA/3D/Display to avoid false positives
 # ─────────────────────────────────────────────
 install_nvidia() {
-  info "[NVIDIA] Detectando GPU"
+  info "[NVIDIA] Detecting GPU"
 
-  # Filtragem mais precisa: só dispositivos VGA/3D/Display
+  # Precise filter: only VGA/3D/Display class devices
   if ! lspci | grep -i 'vga\|3d\|display' | grep -qi nvidia; then
-    warning "Nenhuma GPU NVIDIA detectada. Pulando instalação do driver."
+    warning "No NVIDIA GPU detected. Skipping driver installation."
     return
   fi
 
   GPU_INFO="$(lspci | grep -i 'vga\|3d\|display' | grep -i nvidia | head -1)"
-  ok "GPU NVIDIA detectada: $GPU_INFO"
+  ok "NVIDIA GPU detected: $GPU_INFO"
 
-  # Aviso sobre Secure Boot
+  # Secure Boot warning
   if command -v mokutil &>/dev/null && mokutil --sb-state 2>/dev/null | grep -qi enabled; then
-    warning "Secure Boot está ATIVADO."
-    warning "Após a instalação você precisará assinar o módulo akmod manualmente."
-    warning "Veja: https://rpmfusion.org/Howto/Secure%20Boot"
-    read -rp "  Continuar mesmo assim? [s/N]: " SB_CONFIRM
-    [[ "${SB_CONFIRM,,}" != "s" ]] && { warning "Instalação NVIDIA cancelada."; return; }
+    warning "Secure Boot is ENABLED."
+    warning "After installation you will need to manually sign the akmod module."
+    warning "See: https://rpmfusion.org/Howto/Secure%20Boot"
+    read -rp "  Continue anyway? [y/N]: " SB_CONFIRM
+    [[ "${SB_CONFIRM,,}" != "y" ]] && { warning "NVIDIA installation cancelled."; return; }
   fi
 
-  step "Instalando driver NVIDIA do RPM Fusion (akmod)"
-  # cuda-toolkit NÃO existe no RPM Fusion. xorg-x11-drv-nvidia-cuda já habilita
-  # suporte a CUDA/NVENC/NVDEC para apps. Para CUDA Toolkit completo (nvcc, etc),
-  # use a opção [c] abaixo para adicionar o repo oficial da NVIDIA.
+  step "Installing NVIDIA driver from RPM Fusion (akmod)"
+  # cuda-toolkit does NOT exist in RPM Fusion. xorg-x11-drv-nvidia-cuda already
+  # enables CUDA/NVENC/NVDEC support for apps (Blender, OBS, etc.).
+  # For the full CUDA Toolkit (nvcc, headers), see the prompt below.
   try sudo dnf install -y --skip-unavailable \
     akmod-nvidia \
     xorg-x11-drv-nvidia \
@@ -326,60 +322,59 @@ install_nvidia() {
     libva-utils \
     vdpauinfo
 
-  step "Compilando módulo akmod (pode demorar alguns minutos...)"
+  step "Building akmod module (may take a few minutes...)"
   try sudo akmods --force
 
-  step "Regenerando initramfs"
+  step "Regenerating initramfs"
   try sudo dracut --force
 
-  step "Habilitando serviços de energia NVIDIA"
+  step "Enabling NVIDIA power management services"
   try sudo systemctl enable nvidia-hibernate nvidia-resume nvidia-suspend
 
   echo
-  echo -e "${BOLD}── CUDA Toolkit completo? ──${NC}"
-  echo "O driver instalado já dá suporte a CUDA para aplicativos (Blender, OBS, etc.)."
-  echo "Para o CUDA Toolkit COMPLETO (nvcc, cuBLAS headers, samples, etc.), é"
-  echo "necessário adicionar o repositório oficial da NVIDIA."
-  read -rp "  Adicionar repo CUDA oficial da NVIDIA agora? [s/N]: " CUDA_CONFIRM
-  if [[ "${CUDA_CONFIRM,,}" == "s" ]]; then
-    step "Adicionando repositório CUDA oficial NVIDIA para Fedora ${FEDORA_VER}"
+  echo -e "${BOLD}── Full CUDA Toolkit? ──${NC}"
+  echo "The installed driver already provides CUDA support for apps (Blender, OBS, etc.)."
+  echo "The FULL CUDA Toolkit (nvcc, cuBLAS headers, samples) requires the official NVIDIA repo."
+  read -rp "  Add the official NVIDIA CUDA repo now? [y/N]: " CUDA_CONFIRM
+  if [[ "${CUDA_CONFIRM,,}" == "y" ]]; then
+    step "Adding official NVIDIA CUDA repository for Fedora ${FEDORA_VER}"
     try sudo dnf config-manager addrepo \
       --from-repofile="https://developer.download.nvidia.com/compute/cuda/repos/fedora${FEDORA_VER}/$(uname -m)/cuda-fedora${FEDORA_VER}.repo"
     try sudo dnf clean all
 
-    # Excluir pacotes que conflitam com os do RPM Fusion
+    # Exclude packages that conflict with RPM Fusion
     try sudo dnf config-manager setopt \
       "cuda-fedora${FEDORA_VER}-$(uname -m).exclude=nvidia-driver,nvidia-modprobe,nvidia-persistenced,nvidia-settings,nvidia-libXNVCtrl,nvidia-xconfig"
 
-    step "Instalando cuda-toolkit (nvcc, libs, headers)"
+    step "Installing cuda-toolkit (nvcc, libs, headers)"
     try sudo dnf install -y cuda-toolkit
-    ok "CUDA Toolkit instalado. Rode 'nvcc --version' após reiniciar."
+    ok "CUDA Toolkit installed. Run 'nvcc --version' after rebooting."
   else
-    ok "CUDA via driver apenas (sem nvcc). Suficiente para a maioria dos apps."
+    ok "Driver-only CUDA support (no nvcc). Sufficient for most applications."
   fi
 
-  ok "Driver NVIDIA instalado. Reinicie para ativar o módulo."
+  ok "NVIDIA driver installed. Reboot to load the kernel module."
 }
 
 # ─────────────────────────────────────────────
-# EXTENSÕES GNOME
+# GNOME EXTENSIONS
 # ─────────────────────────────────────────────
 install_gnome_extensions() {
-  info "[EXTENSÕES] Instalando extensões GNOME"
+  info "[EXTENSIONS] Installing GNOME extensions"
 
   export PATH="$HOME/.local/bin:$PATH"
 
   if ! command -v gext &>/dev/null; then
-    step "Instalando gnome-extensions-cli via pipx"
+    step "Installing gnome-extensions-cli via pipx"
     try pipx install gnome-extensions-cli
     export PATH="$HOME/.local/bin:$PATH"
   fi
 
   EXTENSIONS=(
-    appindicatorsupport@rgcjonas.gmail.com    # AppIndicator (bandejas)
-    caffeine@patapon.info                     # Caffeine (evitar suspensão)
+    appindicatorsupport@rgcjonas.gmail.com    # AppIndicator (system tray support)
+    caffeine@patapon.info                     # Caffeine (prevent suspend)
     dash-to-dock@micxgx.gmail.com             # Dash to Dock
-    gsconnect@andyholmes.github.io            # GSConnect (KDE Connect para GNOME)
+    gsconnect@andyholmes.github.io            # GSConnect (KDE Connect for GNOME)
     tilingshell@ferrarodomenico.com           # Tiling Shell
   )
 
@@ -392,28 +387,28 @@ install_gnome_extensions() {
       try gext install "$ext"
       try gext enable "$ext"
     done
-    ok "Extensões instaladas. Algumas podem mostrar erro até a próxima atualização do GNOME Shell."
+    ok "Extensions installed. Some may show errors until the next GNOME Shell update."
   else
-    warning "gext não disponível. Instale manualmente pelo Extension Manager."
-    echo "  Extensões necessárias:"
+    warning "gext not available. Install manually via Extension Manager."
+    echo "  Required extensions:"
     printf '    - %s\n' "${EXTENSIONS[@]}"
   fi
 }
 
 # ─────────────────────────────────────────────
-# REMOÇÃO DE BLOATWARE
-# Executada DEPOIS de instalar tudo para não
-# quebrar dependências durante a instalação
+# BLOATWARE REMOVAL
+# Run AFTER installing everything to avoid
+# breaking dependencies during installation
 # ─────────────────────────────────────────────
 remove_bloat() {
-  info "[LIMPEZA] Removendo bloatware"
-  warning "Execute esta etapa DEPOIS de instalar tudo para evitar problemas de dependência."
+  info "[CLEANUP] Removing bloatware"
+  warning "Run this step AFTER installing everything to avoid dependency issues."
 
-  step "Removendo LibreOffice (substituído pelo FreeOffice)"
+  step "Removing LibreOffice (replaced by FreeOffice)"
   try sudo dnf remove -y 'libreoffice*'
 
-  step "Removendo players de mídia padrão do GNOME (substituídos pelo VLC)"
-  # Cobre ambos: Fedora ≤42 (Totem) e Fedora ≥43 (Showtime/Decibels)
+  step "Removing default GNOME media players (replaced by VLC)"
+  # Covers both: Fedora ≤42 (Totem) and Fedora ≥43 (Showtime/Decibels)
   try sudo dnf remove -y \
     showtime \
     decibels \
@@ -422,13 +417,13 @@ remove_bloat() {
     gnome-music \
     rhythmbox
 
-  step "Removendo terminal duplicado (mantendo Ptyxis, padrão do Fedora 44)"
+  step "Removing duplicate terminal (keeping Ptyxis, default since Fedora 41)"
   try sudo dnf remove -y gnome-terminal
 
-  step "Removendo app de extensões RPM (substituído pelo Extension Manager Flatpak)"
+  step "Removing RPM Extensions app (replaced by Extension Manager Flatpak)"
   try sudo dnf remove -y gnome-extensions-app
 
-  step "Removendo apps desnecessários"
+  step "Removing unnecessary apps"
   try sudo dnf remove -y \
     cheese \
     gnome-tour \
@@ -443,8 +438,7 @@ remove_bloat() {
     'jack-audio-connection-kit*' \
     qjackctl
 
-  step "Removendo Flatpaks desnecessários"
-  # Players de mídia padrão do GNOME via Flatpak (caso instalados)
+  step "Removing unnecessary Flatpaks"
   try flatpak uninstall -y \
     org.gnome.Showtime \
     org.gnome.Decibels \
@@ -454,134 +448,186 @@ remove_bloat() {
     org.gnome.Help \
     com.usebruno.Bruno 2>/dev/null || true
 
-  step "Limpando dependências órfãs"
+  step "Cleaning orphan dependencies"
   try sudo dnf autoremove -y
 
-  ok "Limpeza concluída."
+  ok "Cleanup complete."
 }
 
 # ─────────────────────────────────────────────
-# CONFIGURAÇÕES VISUAIS
+# VISUAL SETTINGS & DEFAULT APPS
 # ─────────────────────────────────────────────
 apply_settings() {
-  info "[VISUAL] Aplicando configurações GNOME"
+  info "[SETTINGS] Applying GNOME settings and default apps"
 
+  # ── Appearance ──
   try gsettings set org.gnome.desktop.interface icon-theme         'Papirus'
   try gsettings set org.gnome.desktop.interface color-scheme       'prefer-dark'
   try gsettings set org.gnome.desktop.interface clock-show-date    true
   try gsettings set org.gnome.desktop.interface clock-show-seconds true
 
-  step "Baixando e aplicando wallpaper"
-  WALLPAPER_URL="https://images-assets.nasa.gov/image/art002e009285/art002e009285~large.jpg?w=1920&h=1280&fit=clip&crop=faces%2Cfocalpoint"
+  # ── Default browser: Google Chrome ──
+  step "Setting Google Chrome as default web browser"
+  try xdg-settings set default-web-browser google-chrome.desktop
+
+  # ── Default media player: VLC ──
+  step "Setting VLC as default audio and video player"
+  # Video MIME types
+  VIDEO_TYPES=(
+    video/mp4
+    video/x-matroska
+    video/webm
+    video/avi
+    video/quicktime
+    video/x-msvideo
+    video/mpeg
+    video/x-flv
+    video/3gpp
+    video/ogg
+  )
+  for mime in "${VIDEO_TYPES[@]}"; do
+    try xdg-mime default vlc.desktop "$mime"
+  done
+
+  # Audio MIME types
+  AUDIO_TYPES=(
+    audio/mpeg
+    audio/ogg
+    audio/flac
+    audio/x-wav
+    audio/aac
+    audio/mp4
+    audio/x-m4a
+    audio/opus
+    audio/webm
+  )
+  for mime in "${AUDIO_TYPES[@]}"; do
+    try xdg-mime default vlc.desktop "$mime"
+  done
+
+  ok "VLC set as default for audio and video."
+
+  # ── Wallpaper ──
+  step "Downloading and applying wallpaper"
+  WALLPAPER_URL="https://images-assets.nasa.gov/image/art002e009287/art002e009287~large.jpg?w=1920&h=1280&fit=clip&crop=faces%2Cfocalpoint"
   WALLPAPER_PATH="$HOME/Pictures/nasa-wallpaper.jpg"
   mkdir -p "$HOME/Pictures"
   if curl -fsSL "$WALLPAPER_URL" -o "$WALLPAPER_PATH"; then
     try gsettings set org.gnome.desktop.background picture-uri      "file://$WALLPAPER_PATH"
     try gsettings set org.gnome.desktop.background picture-uri-dark "file://$WALLPAPER_PATH"
     try gsettings set org.gnome.desktop.background picture-options  'zoom'
-    ok "Wallpaper aplicado."
+    ok "Wallpaper applied."
   else
-    warning "Falha ao baixar wallpaper. Verifique a conexão."
+    warning "Failed to download wallpaper. Check your connection."
   fi
 
-  ok "Configurações aplicadas."
+  ok "Settings applied."
 }
 
 # ─────────────────────────────────────────────
-# VERIFICAÇÃO FINAL
+# FINAL VERIFICATION
 # ─────────────────────────────────────────────
 verify_final() {
-  info "[VERIFICAÇÃO] Checando estado final do sistema"
+  info "[VERIFICATION] Checking final system state"
 
   echo
-  echo -e "${BOLD}── Pacotes que devem ter sido REMOVIDOS ──${NC}"
+  echo -e "${BOLD}── Packages that should have been REMOVED ──${NC}"
   REMOVED_CHECK=$(rpm -qa | grep -E \
     "libreoffice|^showtime|^decibels|^totem|totem-video-thumbnailer|gnome-music|^rhythmbox|^cheese|gnome-tour|^mediawriter|gnome-system-monitor|gnome-weather|gnome-maps|^yelp|^dconf-editor|^htop|^piper" \
     2>/dev/null || true)
   if [[ -z "$REMOVED_CHECK" ]]; then
-    ok "Nenhum app indesejado encontrado."
+    ok "No unwanted packages found."
   else
-    warning "Ainda presentes:"
+    warning "Still present:"
     echo "$REMOVED_CHECK"
   fi
 
   echo
-  echo -e "${BOLD}── Pacotes RPM que devem existir ──${NC}"
+  echo -e "${BOLD}── RPM packages that should exist ──${NC}"
   rpm -qa | grep -E \
-    "google-chrome-stable|brave-browser|firefox|^vlc|audacity|darktable|handbrake|inkscape|easyeffects|^gimp|obs-studio|gnome-software|papirus|softmaker|freeoffice|^solaar|timeshift|deja-dup" \
-    2>/dev/null || warning "Alguns pacotes RPM podem não estar instalados."
+    "google-chrome-stable|firefox|^vlc|audacity|darktable|handbrake|inkscape|easyeffects|^gimp|^blender|^steam|obs-studio|gnome-software|papirus|softmaker|freeoffice|^solaar|timeshift|deja-dup" \
+    2>/dev/null || warning "Some RPM packages may not be installed."
 
   echo
-  echo -e "${BOLD}── Codecs essenciais ──${NC}"
+  echo -e "${BOLD}── Essential codecs ──${NC}"
   if rpm -q ffmpeg &>/dev/null && ! rpm -q ffmpeg-free &>/dev/null; then
-    ok "ffmpeg completo instalado (ffmpeg-free substituído)."
+    ok "Full ffmpeg installed (ffmpeg-free replaced)."
   else
-    warning "ffmpeg-free ainda presente — codecs proprietários podem estar faltando."
+    warning "ffmpeg-free still present — proprietary codecs may be missing."
   fi
 
   echo
-  echo -e "${BOLD}── Flatpaks instalados ──${NC}"
-  flatpak list --app --columns=application 2>/dev/null | grep -E \
-    "Alpaca|Resources|Flatseal|Blanket|Raider|FreeCAD|Upscayl|Shotcut|VideoTrimmer|cameractrls|converseen|dreamchess|nokske22.Exhibit|Minder|Motrix|localsend|pdf_metadata_editor|PeaZip|Podcasts|Popsicle|Shortwave|sticky|Converter|ExtensionManager" \
-    || warning "Alguns Flatpaks esperados podem não estar instalados."
+  echo -e "${BOLD}── Default applications ──${NC}"
+  BROWSER=$(xdg-settings get default-web-browser 2>/dev/null || echo "not set")
+  echo "  Default browser : $BROWSER"
+  VIDEO_DEFAULT=$(xdg-mime query default video/mp4 2>/dev/null || echo "not set")
+  echo "  Default video   : $VIDEO_DEFAULT"
+  AUDIO_DEFAULT=$(xdg-mime query default audio/mpeg 2>/dev/null || echo "not set")
+  echo "  Default audio   : $AUDIO_DEFAULT"
 
   echo
-  echo -e "${BOLD}── GPU NVIDIA ──${NC}"
+  echo -e "${BOLD}── Installed Flatpaks ──${NC}"
+  flatpak list --app --columns=application 2>/dev/null | grep -E \
+    "Alpaca|Resources|Flatseal|Blanket|Raider|FreeCAD|Upscayl|Shotcut|VideoTrimmer|cameractrls|converseen|dreamchess|nokse22.Exhibit|Minder|Motrix|localsend|PeaZip|Podcasts|Popsicle|Shortwave|sticky|Converter|ExtensionManager" \
+    || warning "Some expected Flatpaks may not be installed."
+
+  echo
+  echo -e "${BOLD}── NVIDIA GPU ──${NC}"
   if lspci | grep -i 'vga\|3d\|display' | grep -qi nvidia; then
     if rpm -q akmod-nvidia &>/dev/null; then
-      ok "Driver NVIDIA instalado."
-      nvidia-smi 2>/dev/null | head -4 || warning "nvidia-smi não disponível (reinicie para ativar o módulo)."
+      ok "NVIDIA driver installed."
+      nvidia-smi 2>/dev/null | head -4 || warning "nvidia-smi not available (reboot to load the module)."
       if command -v nvcc &>/dev/null; then
-        ok "CUDA Toolkit completo presente: $(nvcc --version | grep release)"
+        ok "Full CUDA Toolkit present: $(nvcc --version | grep release)"
       else
-        echo "  ℹ CUDA Toolkit (nvcc) não instalado — apenas suporte CUDA do driver."
+        echo "  ℹ CUDA Toolkit (nvcc) not installed — driver-only CUDA support active."
       fi
     else
-      warning "GPU NVIDIA detectada mas driver NÃO instalado."
+      warning "NVIDIA GPU detected but driver NOT installed."
     fi
   else
-    ok "Sem GPU NVIDIA (nenhum driver necessário)."
+    ok "No NVIDIA GPU (no driver needed)."
   fi
 
   echo
-  echo -e "${BOLD}── Extensões GNOME ──${NC}"
+  echo -e "${BOLD}── GNOME Extensions ──${NC}"
   if command -v gnome-extensions &>/dev/null; then
     gnome-extensions list --enabled 2>/dev/null || true
   else
-    warning "gnome-extensions não disponível."
+    warning "gnome-extensions not available."
   fi
 }
 
 # ─────────────────────────────────────────────
-# EXECUTAR TUDO
-# Ordem correta: instalar tudo → remover bloat
+# RUN EVERYTHING
+# Correct order: install everything → remove bloat
 # ─────────────────────────────────────────────
 run_all() {
   echo
-  echo -e "${YELLOW}Isso irá executar todas as etapas na ordem correta.${NC}"
-  echo -e "${CYAN}Ordem: repos → update → RPMs → FreeOffice → Flatpaks → NVIDIA → Extensões → Remover bloat → Visual${NC}"
+  echo -e "${YELLOW}This will run all steps in the correct order.${NC}"
+  echo -e "${CYAN}Order: repos → update → RPMs → FreeOffice → Flatpaks → NVIDIA → Extensions → Remove bloat → Settings${NC}"
   echo
-  read -rp "Confirmar? [s/N]: " CONFIRM
-  [[ "${CONFIRM,,}" != "s" ]] && { warning "Cancelado."; return; }
+  read -rp "Confirm? [y/N]: " CONFIRM
+  [[ "${CONFIRM,,}" != "y" ]] && { warning "Cancelled."; return; }
 
   add_repos
   update_system
-  install_rpms        # Instala tudo (incluindo codecs)
-  install_freeoffice  # FreeOffice antes de remover o LibreOffice
+  install_rpms        # Installs everything (including codecs)
+  install_freeoffice  # FreeOffice before removing LibreOffice
   install_flatpaks
-  install_nvidia      # Autodetecta — pula se não houver GPU NVIDIA
+  install_nvidia      # Auto-detects — skips if no NVIDIA GPU found
   install_gnome_extensions
-  remove_bloat        # Remove LibreOffice e bloat APÓS instalar tudo
-  apply_settings
+  remove_bloat        # Removes LibreOffice and bloat AFTER installing everything
+  apply_settings      # Visual settings + default apps
   verify_final
 
   echo
-  ok "Setup finalizado!"
-  echo -e "${YELLOW}⚠ Reinicie o sistema para ativar todos os drivers e configurações.${NC}"
+  ok "Setup complete!"
+  echo -e "${YELLOW}⚠ Reboot the system to activate all drivers and settings.${NC}"
 }
 
 # ─────────────────────────────────────────────
-# LOOP PRINCIPAL
+# MAIN LOOP
 # ─────────────────────────────────────────────
 while true; do
   show_menu
@@ -596,11 +642,11 @@ while true; do
     7) install_gnome_extensions ;;
     8) apply_settings ;;
     9) verify_final ;;
-    0) echo "Saindo."; exit 0 ;;
-    r|R) echo "Reiniciando..."; sudo reboot ;;
-    *) warning "Opção inválida." ;;
+    0) echo "Exiting."; exit 0 ;;
+    r|R) echo "Rebooting..."; sudo reboot ;;
+    *) warning "Invalid option." ;;
   esac
 
   echo
-  read -rp "Pressione ENTER para voltar ao menu..." _
+  read -rp "Press ENTER to return to the menu..." _
 done
