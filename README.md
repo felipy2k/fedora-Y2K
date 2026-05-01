@@ -1,17 +1,97 @@
-# 🎩 Fedora — Setup Personalizado
+# 🎩 Fedora Setup — Script de Pós-Instalação
 
-Script interativo de pós-instalação para Fedora com menu em português. Instala aplicativos, codecs, drivers NVIDIA, extensões GNOME, remove bloatware e aplica configurações visuais — tudo em uma única execução.
+Script interativo de pós-instalação para **Fedora Workstation 41+** (testado no Fedora 44 com GNOME 50).  
+Automatiza repositórios, codecs, drivers, apps RPM, Flatpaks, extensões GNOME e configurações visuais — tudo com menu e execução modular.
 
 ---
 
-## ⚡ Como usar
+## ✨ O que o script faz
+
+### 📦 Repositórios
+- RPM Fusion Free + Nonfree (com AppStream metadata para GNOME Software)
+- RPM Fusion Tainted (firmware e codecs extras)
+- `fedora-cisco-openh264` (H.264 para Firefox e WebRTC)
+- Google Chrome
+- Brave Browser
+
+### 🎬 Codecs de Mídia
+- Troca `ffmpeg-free` pelo `ffmpeg` completo (H.264, H.265, AAC, MP3, etc.)
+- `dnf group upgrade multimedia` + `sound-and-video` (método oficial)
+- GStreamer completo: `libav`, `ugly`, `bad-freeworld`, `openh264`
+- Aceleração de hardware VA-API/VDPAU autodetectada por GPU:
+  - **AMD** → `mesa-va-drivers-freeworld` + `mesa-vdpau-drivers-freeworld`
+  - **Intel** → `intel-media-driver` + `libva-intel-driver`
+
+### 🖥️ Driver NVIDIA + CUDA
+- Autodetecção de GPU (filtra apenas dispositivos VGA/3D/Display)
+- Aviso e confirmação se **Secure Boot** estiver ativo
+- Instala via RPM Fusion: `akmod-nvidia`, `xorg-x11-drv-nvidia-cuda`, `nvidia-settings`, `nvidia-vaapi-driver`
+- Compila o módulo com `akmods --force` e regenera o initramfs com `dracut --force`
+- Habilita serviços de energia (`nvidia-hibernate`, `nvidia-resume`, `nvidia-suspend`)
+- Pergunta interativamente se deseja o **CUDA Toolkit completo** (nvcc, cuBLAS, headers) via repo oficial da NVIDIA, com exclusão dos pacotes que conflitam com o RPM Fusion
+
+### 📥 Pacotes RPM instalados
+
+| Categoria | Apps |
+|---|---|
+| Navegadores | Firefox, Google Chrome, Brave, Tor Browser |
+| Multimídia | VLC, Audacity, Darktable, Handbrake, EasyEffects, OBS Studio |
+| Gráficos | GIMP, Inkscape |
+| GNOME Apps | Tweaks, Baobab, Déjà Dup, Boxes, Calculator, Calendar, Snapshot, Characters, Connections, Contacts, Simple Scan, Disk Utility, Text Editor, Font Viewer, Color Manager, Software, Clocks, Logs, Evince, Loupe |
+| Utilitários | Timeshift, Solaar, fastfetch, pipx |
+| Office | FreeOffice 2024 (instalador oficial) |
+
+### 📱 Flatpaks (Flathub)
+
+| Categoria | Apps |
+|---|---|
+| Sistema | Extension Manager, Resources, Flatseal, PeaZip, Popsicle, File Shredder (Raider), LocalSend, Paper Clip, Switcheroo |
+| Multimídia | Shotcut, Video Trimmer, Camera Ctrls, Converseen |
+| Produtividade | FreeCAD, Upscayl, Exhibit (3D Viewer), Minder, Motrix |
+| Entretenimento | DreamChess, Blanket, Shortwave, Podcasts, Gcolor3, Sticky Notes, Alpaca |
+
+### 🧩 Extensões GNOME (via `gnome-extensions-cli`)
+- AppIndicator Support
+- Caffeine
+- Dash to Dock
+- GSConnect (KDE Connect para GNOME)
+- Tiling Shell
+
+### 🧹 Bloatware removido
+
+| Tipo | O que é removido |
+|---|---|
+| Office | LibreOffice (substituído pelo FreeOffice) |
+| Vídeo | Showtime, Totem, totem-video-thumbnailer |
+| Áudio | Decibels, GNOME Music, Rhythmbox |
+| Terminal | GNOME Terminal (mantém **Ptyxis**, padrão do Fedora 41+) |
+| Extensões RPM | gnome-extensions-app (substituído pelo Extension Manager Flatpak) |
+| Outros | Cheese, GNOME Tour, Mediawriter, GNOME System Monitor, Meteorologia, Mapas, Yelp, dconf-editor, htop, Piper, JACK |
+| Flatpaks | Showtime, Decibels, Totem, GNOME Music, Piper, GNOME Help, Bruno |
+
+### 🎨 Configurações visuais
+- Tema de ícones: **Papirus**
+- Esquema de cores: **Modo escuro**
+- Relógio com data e segundos visíveis
+- Wallpaper da NASA aplicado automaticamente
+
+---
+
+## 🚀 Como usar
 
 ```bash
+# Clone o repositório
+git clone https://github.com/SEU_USUARIO/fedora-setup.git
+cd fedora-setup
+
+# Dê permissão de execução
 chmod +x fedora-setup.sh
+
+# Execute como usuário normal (NÃO como root)
 ./fedora-setup.sh
 ```
 
-> ⚠️ **Não rode como root.** O script pede `sudo` apenas quando necessário.
+> ⚠️ **Não rode como root.** O script usa `sudo` internamente onde necessário.
 
 ---
 
@@ -20,7 +100,6 @@ chmod +x fedora-setup.sh
 ```
 ╔═══════════════════════════════════════════════════════════════╗
 ║              Fedora — Setup Personalizado                     ║
-║           Usuário: seunome                                    ║
 ╠═══════════════════════════════════════════════════════════════╣
 ║  [1] Executar TUDO (recomendado)                             ║
 ║  [2] Apenas atualizar sistema                                ║
@@ -36,172 +115,52 @@ chmod +x fedora-setup.sh
 ╚═══════════════════════════════════════════════════════════════╝
 ```
 
-A opção **[1] Executar TUDO** segue a ordem correta:
-
-```
-repos → atualização → RPMs → FreeOffice → Flatpaks → NVIDIA → Extensões → remover bloat → visual → verificação
-```
-
-> O bloatware é removido **sempre por último**, após todas as instalações, para evitar quebrar dependências.
+Cada etapa pode ser executada individualmente. A opção `[1] Executar TUDO` garante a **ordem correta**: instala tudo primeiro, remove o bloatware depois — evitando quebra de dependências.
 
 ---
 
-## 📦 O que é instalado
+## ⚙️ Requisitos
 
-### Repositórios
-- **RPM Fusion** (free + nonfree)
-- **Google Chrome** (repositório oficial)
-- **Brave Browser** (repositório oficial)
-
-### Codecs e multimídia
-- ffmpeg completo (com swap do ffmpeg-free)
-- libavcodec-freeworld, lame
-- GStreamer plugins (base, good, bad, ugly, openh264)
-
-### Aplicativos RPM
-
-| Categoria | Aplicativos |
-|-----------|-------------|
-| **Navegadores** | Google Chrome, Brave, Firefox, Tor Browser |
-| **Multimídia** | VLC, Audacity, darktable, HandBrake, EasyEffects, OBS Studio |
-| **Gráficos** | GIMP, Inkscape |
-| **GNOME Apps** | Tweaks, Baobab, Nautilus, Déjà Dup, Boxes, Calculadora, Calendário, Câmera (Snapshot), Caracteres, Relato de Problemas, Conexões, Contatos, Digitalizador, Discos, Editor de Texto, Fontes, Perfil de Cor, Gestor de Extensões, Software, Relógios, Registros, Terminal, Evince, Loupe |
-| **Utilitários** | Timeshift, Solaar |
-
-### FreeOffice 2024
-Instalado via instalador oficial da SoftMaker, substituindo o LibreOffice:
-```bash
-curl -fsSL https://softmaker.net/down/install-softmaker-freeoffice-2024.sh | sudo bash
-```
-
-### Flatpaks (Flathub)
-
-| Categoria | App | Descrição |
-|-----------|-----|-----------|
-| **Sistema** | Extension Manager | Gestor de extensões GNOME |
-| | Resources | Monitor de recursos |
-| | Flatseal | Gerenciador de permissões Flatpak |
-| | PeaZip | Compactador de arquivos |
-| | Popsicle | Gravador de USB |
-| | PowerISO | Gerenciador de ISOs |
-| | File Shredder | Destruidor seguro de arquivos |
-| | Packet | Analisador de rede |
-| | Paper Clip | Editor de metadados PDF |
-| | Converter (Switcheroo) | Conversor de imagens |
-| **Multimídia** | Shotcut | Editor de vídeo |
-| | Video Trimmer | Aparador de vídeo |
-| | Cameractrls | Controles de câmera |
-| | Converseen | Conversor de imagens em lote |
-| **Produtividade** | FreeCAD | Modelagem CAD 3D |
-| | Upscayl | Upscale de imagens com IA |
-| | Exhibit | Visualizador de modelos 3D |
-| | Minder | Mapas mentais |
-| | Motrix | Gerenciador de downloads |
-| **Entretenimento** | DreamChess | Xadrez 3D |
-| | Blanket | Sons ambiente |
-| | Shortwave | Rádio online |
-| | Podcasts | Podcasts |
-| **Outros** | BudsLink | Controle de Galaxy Buds |
-| | Seletor de cor | Captura de cores da tela |
-| | Sticky Notes | Notas adesivas |
-| | Alpaca | Interface local para LLMs (Ollama) |
-
-### Driver NVIDIA (autodetectado)
-O script detecta automaticamente se há GPU NVIDIA via `lspci`. Se encontrada, instala:
-- `akmod-nvidia` — driver via DKMS
-- `xorg-x11-drv-nvidia` e variantes
-- `nvidia-vaapi-driver` — aceleração de vídeo
-- `cuda-toolkit`
-- Habilita serviços: `nvidia-hibernate`, `nvidia-resume`, `nvidia-suspend`
-
-> Se não houver GPU NVIDIA, esta etapa é pulada automaticamente.
-
-### Extensões GNOME
-
-| Extensão | ID |
-|----------|----|
-| AppIndicator & KStatusNotifierItem Support | `appindicatorsupport@rgcjonas.gmail.com` |
-| Caffeine | `caffeine@patapon.info` |
-| Dash to Dock | `dash-to-dock@micxgx.gmail.com` |
-| GSConnect | `gsconnect@andyholmes.github.io` |
-| Tiling Shell | `tilingshell@ferrarodomenico.com` |
-
-> ⚠️ **GSConnect** pode aparecer com erro até a atualização para GNOME 50 — é esperado.
-
-Instaladas via `gnome-extensions-cli` (pipx).
+- Fedora Workstation **41 ou superior** (otimizado para Fedora 44 + GNOME 50)
+- Conexão com a internet
+- Usuário com acesso `sudo`
 
 ---
 
-## 🗑️ O que é removido (bloatware)
+## 📝 Notas importantes
 
-### RPM
-| Pacote | Motivo |
-|--------|--------|
-| `libreoffice*` | Substituído pelo FreeOffice |
-| `totem` / `totem-video-thumbnailer` | Substituído pelo VLC |
-| `gnome-music` / `rhythmbox` | Substituídos pelo VLC |
-| `cheese` | Substituído pelo Snapshot |
-| `gnome-weather` | Não utilizado |
-| `gnome-maps` | Não utilizado |
-| `gnome-tour` | Não utilizado |
-| `mediawriter` | Substituído pelo Popsicle |
-| `gnome-system-monitor` | Substituído pelo Resources |
-| `yelp` | Documentação offline desnecessária |
-| `dconf-editor` | Não utilizado |
-| `htop` | Substituído pelo Resources |
-| `piper` | Substituído pelo Solaar |
-| `jack-audio-connection-kit*` / `qjackctl` | Não utilizado |
+**NVIDIA + Secure Boot**  
+Se o Secure Boot estiver ativo, o script avisa e pede confirmação antes de instalar. Após a instalação, o módulo `akmod` precisa ser assinado manualmente. Consulte o guia: [RPM Fusion — Secure Boot](https://rpmfusion.org/Howto/Secure%20Boot)
 
-### Flatpak
-| App | ID |
-|-----|----|
-| Piper | `org.freedesktop.Piper` |
-| Ajuda GNOME | `org.gnome.Help` |
-| Reprodutor de Vídeo | `org.gnome.Showtime` |
-| Leitor de Áudio | `org.gnome.Decibels` |
-| Bruno | `com.usebruno.Bruno` |
+**CUDA Toolkit**  
+O driver instalado via RPM Fusion já inclui suporte a CUDA para aplicativos (Blender, OBS, etc.). O CUDA Toolkit completo (com `nvcc`, cuBLAS e headers) é opcional e instalado via repositório oficial da NVIDIA mediante confirmação interativa.
+
+**FreeOffice**  
+Instalado via script oficial da SoftMaker antes da remoção do LibreOffice, garantindo que nunca haja um momento sem suite de escritório disponível.
+
+**Controle Parental (malcontent)**  
+O pacote base `malcontent` é dependência do `gnome-control-center` e não pode ser removido sem quebrar o GNOME. O script não toca nele.
+
+**Falhas não bloqueiam**  
+O script usa a função `try()` — se um passo falhar (ex.: pacote já instalado, ou não disponível), ele registra o aviso e continua. Nenhum erro aborta o processo inteiro.
 
 ---
 
-## 🎨 Configurações visuais aplicadas
+## 📋 Verificação final
 
-| Configuração | Valor |
-|-------------|-------|
-| Tema de ícones | Papirus |
-| Esquema de cores | Modo escuro |
-| Relógio — mostrar data | Sim |
-| Relógio — mostrar segundos | Sim |
-| Papel de parede | Foto da NASA (ISS) — aplicada em modo claro e escuro |
-
-O wallpaper é baixado automaticamente da NASA e salvo em `~/Pictures/nasa-wallpaper.jpg`.
-
----
-
-## ✅ Verificação final
-
-A opção **[9]** executa uma checagem completa do sistema e reporta:
-- Pacotes indesejados que ainda estejam presentes
+A opção `[9]` roda uma checagem completa do sistema e reporta:
+- Pacotes indesejados ainda presentes
 - Pacotes RPM esperados instalados
-- Flatpaks esperados instalados
-- Status do driver NVIDIA
+- Status dos codecs (ffmpeg completo vs. ffmpeg-free)
+- Flatpaks instalados
+- Status do driver NVIDIA e CUDA
 - Extensões GNOME ativas
 
 ---
 
-## 📋 Requisitos
+## 📄 Licença
 
-- Fedora (qualquer versão recente)
-- Conexão com a internet
-- Usuário com permissão `sudo`
-
----
-
-## 📝 Notas
-
-- O script **não para em caso de erros** — falhas individuais são registradas e a execução continua
-- A remoção de bloatware ocorre **sempre após** todas as instalações para não quebrar dependências
-- Após a instalação do driver NVIDIA, é necessário **reiniciar** para ativar o módulo do kernel
-- O GSConnect ficará com erro de compatibilidade até o GNOME Shell ser atualizado para a versão 50
+MIT — use, modifique e distribua à vontade.
 
 Como usar:
 git clone https://github.com/felipy2k/fedora-Y2K.git
