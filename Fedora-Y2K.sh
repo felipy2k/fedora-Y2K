@@ -204,11 +204,9 @@ install_rpms() {
     gnome-text-editor \
     gnome-font-viewer \
     gnome-color-manager \
-    gnome-extensions-app \
     gnome-software \
     gnome-clocks \
     gnome-logs \
-    gnome-terminal \
     evince \
     loupe \
     \
@@ -251,7 +249,7 @@ install_flatpaks() {
     com.system76.Popsicle                   # Gravador USB
     com.github.ADBeveridge.Raider           # File Shredder (destruidor de arquivos)
     org.localsend.localsend_app             # LocalSend (compartilhamento via LAN)
-    io.github.jejakeen.paper-clip           # Paper Clip (metadados PDF)
+    io.github.diegoivan.pdf_metadata_editor # Paper Clip (metadados PDF)
     io.gitlab.adhami3310.Converter          # Switcheroo (conversor de imagens)
 
     # Multimídia
@@ -263,7 +261,7 @@ install_flatpaks() {
     # Produtividade / Criatividade
     org.freecad.FreeCAD                     # CAD 3D
     org.upscayl.Upscayl                     # Upscale de imagens (IA)
-    app.devsuite.Exhibit                    # Visualizador 3D/modelos
+    io.github.nokse22.Exhibit               # Visualizador 3D/modelos
     com.github.phase1geo.Minder             # Mapas mentais
     com.motrix.Motrix                       # Gerenciador de downloads
 
@@ -424,6 +422,12 @@ remove_bloat() {
     gnome-music \
     rhythmbox
 
+  step "Removendo terminal duplicado (mantendo Ptyxis, padrão do Fedora 44)"
+  try sudo dnf remove -y gnome-terminal
+
+  step "Removendo app de extensões RPM (substituído pelo Extension Manager Flatpak)"
+  try sudo dnf remove -y gnome-extensions-app
+
   step "Removendo apps desnecessários"
   try sudo dnf remove -y \
     cheese \
@@ -492,7 +496,7 @@ verify_final() {
   echo
   echo -e "${BOLD}── Pacotes que devem ter sido REMOVIDOS ──${NC}"
   REMOVED_CHECK=$(rpm -qa | grep -E \
-    "libreoffice|^showtime|^decibels|^totem|totem-video-thumbnailer|gnome-music|^rhythmbox|^cheese|gnome-tour|^mediawriter|gnome-system-monitor|^yelp|^dconf-editor|^htop|^piper" \
+    "libreoffice|^showtime|^decibels|^totem|totem-video-thumbnailer|gnome-music|^rhythmbox|^cheese|gnome-tour|^mediawriter|gnome-system-monitor|gnome-weather|gnome-maps|^yelp|^dconf-editor|^htop|^piper" \
     2>/dev/null || true)
   if [[ -z "$REMOVED_CHECK" ]]; then
     ok "Nenhum app indesejado encontrado."
@@ -504,7 +508,7 @@ verify_final() {
   echo
   echo -e "${BOLD}── Pacotes RPM que devem existir ──${NC}"
   rpm -qa | grep -E \
-    "google-chrome-stable|brave-browser|firefox|^vlc|audacity|darktable|handbrake|inkscape|easyeffects|^gimp|obs-studio|gnome-software|gnome-extensions-app|papirus|softmaker|freeoffice|^solaar|timeshift|deja-dup" \
+    "google-chrome-stable|brave-browser|firefox|^vlc|audacity|darktable|handbrake|inkscape|easyeffects|^gimp|obs-studio|gnome-software|papirus|softmaker|freeoffice|^solaar|timeshift|deja-dup" \
     2>/dev/null || warning "Alguns pacotes RPM podem não estar instalados."
 
   echo
@@ -518,7 +522,7 @@ verify_final() {
   echo
   echo -e "${BOLD}── Flatpaks instalados ──${NC}"
   flatpak list --app --columns=application 2>/dev/null | grep -E \
-    "Alpaca|Resources|Flatseal|Blanket|Raider|FreeCAD|Upscayl|Shotcut|VideoTrimmer|cameractrls|converseen|dreamchess|Exhibit|Minder|Motrix|localsend|paper.clip|PeaZip|Podcasts|Popsicle|Shortwave|sticky|Converter|ExtensionManager" \
+    "Alpaca|Resources|Flatseal|Blanket|Raider|FreeCAD|Upscayl|Shotcut|VideoTrimmer|cameractrls|converseen|dreamchess|nokske22.Exhibit|Minder|Motrix|localsend|pdf_metadata_editor|PeaZip|Podcasts|Popsicle|Shortwave|sticky|Converter|ExtensionManager" \
     || warning "Alguns Flatpaks esperados podem não estar instalados."
 
   echo
