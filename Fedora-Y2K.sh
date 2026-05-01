@@ -209,7 +209,8 @@ install_rpms() {
     \
     `# Utilities` \
     timeshift \
-    solaar
+    solaar \
+    dreamchess
 }
 
 # ─────────────────────────────────────────────
@@ -262,7 +263,6 @@ install_flatpaks() {
     com.motrix.Motrix                       # Download manager
 
     # Entertainment / Sound / Other
-    net.dreamchess.dreamchess               # Chess
     com.rafaelmardojai.Blanket              # Ambient sounds
     de.haeckerfelix.Shortwave               # Internet radio
     org.gnome.Podcasts                      # Podcasts
@@ -562,7 +562,7 @@ verify_final() {
   echo
   echo -e "${BOLD}── RPM packages that should exist ──${NC}"
   rpm -qa | grep -E \
-    "google-chrome-stable|firefox|^vlc|audacity|darktable|handbrake|inkscape|easyeffects|^gimp|^blender|^steam|obs-studio|gnome-software|papirus|softmaker|freeoffice|^solaar|timeshift|deja-dup" \
+    "google-chrome-stable|firefox|^vlc|audacity|darktable|handbrake|inkscape|easyeffects|^gimp|^blender|^steam|^dreamchess|obs-studio|gnome-software|papirus|softmaker|freeoffice|^solaar|timeshift|deja-dup" \
     2>/dev/null || warning "Some RPM packages may not be installed."
 
   echo
@@ -591,7 +591,7 @@ verify_final() {
   echo
   echo -e "${BOLD}── Installed Flatpaks ──${NC}"
   flatpak list --app --columns=application 2>/dev/null | grep -E \
-    "Alpaca|Resources|Flatseal|Blanket|Raider|FreeCAD|Upscayl|Shotcut|VideoTrimmer|cameractrls|converseen|dreamchess|nokse22.Exhibit|Minder|Motrix|localsend|PeaZip|Podcasts|Popsicle|Shortwave|sticky|Converter|ExtensionManager" \
+    "Alpaca|Resources|Flatseal|Blanket|Raider|FreeCAD|Upscayl|Shotcut|VideoTrimmer|cameractrls|converseen|nokse22.Exhibit|Minder|Motrix|localsend|PeaZip|Podcasts|Popsicle|Shortwave|sticky|Converter|ExtensionManager" \
     || warning "Some expected Flatpaks may not be installed."
 
   echo
