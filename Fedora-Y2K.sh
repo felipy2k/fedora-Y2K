@@ -466,14 +466,21 @@ apply_settings() {
   try gsettings set org.gnome.desktop.interface clock-show-date    true
   try gsettings set org.gnome.desktop.interface clock-show-seconds true
 
+  # ── Title bar buttons: add Minimize and Maximize (right side) ──
+  try gsettings set org.gnome.desktop.wm.preferences button-layout 'appmenu:minimize,maximize,close'
+
   # ── Default browser: Google Chrome ──
   step "Setting Google Chrome as default web browser"
   try xdg-settings set default-web-browser google-chrome.desktop
 
   # ── Default media player: VLC ──
+  # Uses three methods combined for reliability on modern GNOME:
+  #   1. xdg-mime  — writes to ~/.config/mimeapps.list
+  #   2. gio mime  — GNOME's own tool, overrides gnome-mimeapps.list entries
+  #   3. Direct write to mimeapps.list — guarantees persistence across sessions
   step "Setting VLC as default audio and video player"
-  # Video MIME types
-  VIDEO_TYPES=(
+
+  MEDIA_TYPES=(
     video/mp4
     video/x-matroska
     video/webm
@@ -484,13 +491,6 @@ apply_settings() {
     video/x-flv
     video/3gpp
     video/ogg
-  )
-  for mime in "${VIDEO_TYPES[@]}"; do
-    try xdg-mime default vlc.desktop "$mime"
-  done
-
-  # Audio MIME types
-  AUDIO_TYPES=(
     audio/mpeg
     audio/ogg
     audio/flac
@@ -501,11 +501,28 @@ apply_settings() {
     audio/opus
     audio/webm
   )
-  for mime in "${AUDIO_TYPES[@]}"; do
+
+  for mime in "${MEDIA_TYPES[@]}"; do
     try xdg-mime default vlc.desktop "$mime"
+    gio mime "$mime" vlc.desktop 2>/dev/null || true
   done
 
-  ok "VLC set as default for audio and video."
+  # Direct write to mimeapps.list as final guarantee
+  MIMEAPPS="$HOME/.config/mimeapps.list"
+  mkdir -p "$HOME/.config"
+
+  # Ensure [Default Applications] section exists
+  if ! grep -q '^\[Default Applications\]' "$MIMEAPPS" 2>/dev/null; then
+    echo '[Default Applications]' >> "$MIMEAPPS"
+  fi
+
+  # For each MIME type: remove any existing entry then add VLC
+  for mime in "${MEDIA_TYPES[@]}"; do
+    sed -i "/^${mime//\//\\/}=/d" "$MIMEAPPS" 2>/dev/null || true
+    sed -i "/^\[Default Applications\]/a ${mime}=vlc.desktop" "$MIMEAPPS"
+  done
+
+  ok "VLC set as default for audio and video (xdg-mime + gio mime + mimeapps.list)."
 
   # ── Wallpaper ──
   step "Downloading and applying wallpaper"
@@ -533,7 +550,7 @@ verify_final() {
   echo
   echo -e "${BOLD}── Packages that should have been REMOVED ──${NC}"
   REMOVED_CHECK=$(rpm -qa | grep -E \
-    "libreoffice|^showtime|^decibels|^totem|totem-video-thumbnailer|gnome-music|^rhythmbox|^cheese|gnome-tour|^mediawriter|gnome-system-monitor|gnome-weather|gnome-maps|^yelp|^dconf-editor|^htop|^piper" \
+    "libreoffice|^showtime|^decibels|^totem|totem-video-thumbnailer|gnome-music|^rhythmbox|^cheese|gnome-tour|^mediawriter|gnome-system-monitor|gnome-weather|gnome-maps|^yelp|^dconf-editor|^htop|^piper|^gnome-terminal$|gnome-extensions-app" \
     2>/dev/null || true)
   if [[ -z "$REMOVED_CHECK" ]]; then
     ok "No unwanted packages found."
@@ -564,6 +581,12 @@ verify_final() {
   echo "  Default video   : $VIDEO_DEFAULT"
   AUDIO_DEFAULT=$(xdg-mime query default audio/mpeg 2>/dev/null || echo "not set")
   echo "  Default audio   : $AUDIO_DEFAULT"
+  BUTTONS=$(gsettings get org.gnome.desktop.wm.preferences button-layout 2>/dev/null || echo "not set")
+  echo "  Title bar btns  : $BUTTONS"
+  [[ "$BROWSER" == *"google-chrome"* ]] && ok "Chrome is default browser." || warning "Chrome is NOT the default browser."
+  [[ "$VIDEO_DEFAULT" == *"vlc"* ]]     && ok "VLC is default video player." || warning "VLC is NOT the default video player."
+  [[ "$AUDIO_DEFAULT" == *"vlc"* ]]     && ok "VLC is default audio player." || warning "VLC is NOT the default audio player."
+  [[ "$BUTTONS" == *"minimize,maximize"* ]] && ok "Minimize/Maximize buttons active." || warning "Minimize/Maximize buttons not set."
 
   echo
   echo -e "${BOLD}── Installed Flatpaks ──${NC}"
