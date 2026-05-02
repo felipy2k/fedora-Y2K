@@ -101,6 +101,7 @@ chmod +x fedora-setup.sh
 # Run as a regular user (NOT as root)
 ./fedora-setup.sh
 ```
+or : https://github.com/felipy2k/fedora-Y2K.git cd fedora-Y2K bash Fedora-Y2K.sh
 
 > ⚠️ **Do not run as root.** The script uses `sudo` internally where needed.
 
@@ -160,8 +161,3 @@ Installed via the official SoftMaker script *before* LibreOffice is removed, ens
 
 **Non-blocking failures**  
 The script uses a `try()` function — if any step fails (package already installed, unavailable, network error, etc.), it logs a warning and continues. No single failure aborts the entire process.
-
-How to use:
-git clone https://github.com/felipy2k/fedora-Y2K.git
-cd fedora-Y2K
-bash Fedora-Y2K.sh
