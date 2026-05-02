@@ -248,6 +248,7 @@ install_flatpaks() {
     com.github.ADBeveridge.Raider           # File Shredder
     org.localsend.localsend_app             # LocalSend (LAN file sharing)
     io.gitlab.adhami3310.Converter          # Switcheroo (image format converter)
+    io.podman_desktop.PodmanDesktop         # Podman Desktop (container management)
 
     # Multimedia
     org.shotcut.Shotcut                     # Video editor
@@ -469,6 +470,12 @@ apply_settings() {
   # ── Title bar buttons: add Minimize and Maximize (right side) ──
   try gsettings set org.gnome.desktop.wm.preferences button-layout 'appmenu:minimize,maximize,close'
 
+  # ── Dock favorites (Chrome, Files, Text Editor, Terminal, Calculator) ──
+  # The App Grid button is always shown automatically by Dash to Dock — no config needed
+  step "Setting dock shortcuts"
+  try gsettings set org.gnome.shell favorite-apps \
+    "['google-chrome.desktop', 'org.gnome.Nautilus.desktop', 'org.gnome.TextEditor.desktop', 'org.gnome.Ptyxis.desktop', 'org.gnome.Calculator.desktop']"
+
   # ── Default browser: Google Chrome ──
   step "Setting Google Chrome as default web browser"
   try xdg-settings set default-web-browser google-chrome.desktop
@@ -583,15 +590,15 @@ verify_final() {
   echo "  Default audio   : $AUDIO_DEFAULT"
   BUTTONS=$(gsettings get org.gnome.desktop.wm.preferences button-layout 2>/dev/null || echo "not set")
   echo "  Title bar btns  : $BUTTONS"
-  [[ "$BROWSER" == *"google-chrome"* ]] && ok "Chrome is default browser." || warning "Chrome is NOT the default browser."
-  [[ "$VIDEO_DEFAULT" == *"vlc"* ]]     && ok "VLC is default video player." || warning "VLC is NOT the default video player."
-  [[ "$AUDIO_DEFAULT" == *"vlc"* ]]     && ok "VLC is default audio player." || warning "VLC is NOT the default audio player."
-  [[ "$BUTTONS" == *"minimize,maximize"* ]] && ok "Minimize/Maximize buttons active." || warning "Minimize/Maximize buttons not set."
+  if [[ "$BROWSER" == *"google-chrome"* ]]; then ok "Chrome is default browser."; else warning "Chrome is NOT the default browser."; fi
+  if [[ "$VIDEO_DEFAULT" == *"vlc"* ]];     then ok "VLC is default video player."; else warning "VLC is NOT the default video player."; fi
+  if [[ "$AUDIO_DEFAULT" == *"vlc"* ]];     then ok "VLC is default audio player."; else warning "VLC is NOT the default audio player."; fi
+  if [[ "$BUTTONS" == *"minimize,maximize"* ]]; then ok "Minimize/Maximize buttons active."; else warning "Minimize/Maximize buttons not set."; fi
 
   echo
   echo -e "${BOLD}── Installed Flatpaks ──${NC}"
   flatpak list --app --columns=application 2>/dev/null | grep -E \
-    "Alpaca|Resources|Flatseal|Blanket|Raider|FreeCAD|Upscayl|Shotcut|VideoTrimmer|cameractrls|converseen|nokse22.Exhibit|Minder|Motrix|localsend|PeaZip|Podcasts|Popsicle|Shortwave|sticky|Converter|ExtensionManager" \
+    "Alpaca|Resources|Flatseal|Blanket|Raider|FreeCAD|Upscayl|Shotcut|VideoTrimmer|cameractrls|converseen|nokse22.Exhibit|Minder|Motrix|localsend|PeaZip|Podcasts|Popsicle|Shortwave|sticky|Converter|ExtensionManager|PodmanDesktop" \
     || warning "Some expected Flatpaks may not be installed."
 
   echo
