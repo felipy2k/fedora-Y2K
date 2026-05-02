@@ -162,3 +162,7 @@ Installed via the official SoftMaker script *before* LibreOffice is removed, ens
 The script uses a `try()` function — if any step fails (package already installed, unavailable, network error, etc.), it logs a warning and continues. No single failure aborts the entire process.
 
 ---
+
+git clone https://github.com/felipy2k/fedora-Y2K.git
+cd fedora-Y2K
+bash Fedora-Y2K.sh
