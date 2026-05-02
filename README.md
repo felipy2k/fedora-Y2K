@@ -108,7 +108,7 @@ The script uses a `try()` function — if any step fails (package already instal
 - Minimize and Maximize buttons enabled (right side of title bar)
 - Dock shortcuts configured (Chrome, Files, Text Editor, Ptyxis, Calculator)
 - Chrome configured for Wayland with two-finger touchpad back/forward gestures
-- NASA wallpaper applied automatically
+- NASA wallpaper applied automatically (https://images-assets.nasa.gov/image/art002e009287/art002e009287~large.jpg?w=1920&h=1280&fit=clip&crop=faces%2Cfocalpoint)
 
 ---
 
