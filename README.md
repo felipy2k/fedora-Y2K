@@ -64,12 +64,13 @@ The script uses a `try()` function — if any step fails (package already instal
 
 | Category | Apps |
 |---|---|
-| Browsers | Firefox, Google Chrome, Tor Browser |
+| Browsers | Firefox, Google Chrome, **Brave**, Tor Browser |
 | Multimedia | VLC, Audacity, Darktable, Handbrake, EasyEffects, OBS Studio |
 | Graphics / 3D | GIMP, Inkscape, Blender |
 | Gaming | Steam |
 | GNOME Apps | Tweaks, Baobab, Déjà Dup, Boxes, Calculator, Calendar, Snapshot, Characters, Connections, Contacts, Simple Scan, Disk Utility, Text Editor, Font Viewer, Color Manager, Software, Clocks, Logs, Evince, Loupe |
 | Utilities | Timeshift, Solaar, fastfetch, pipx, DreamChess |
+| VPN | **NordVPN** (official repo, daemon enabled, user added to `nordvpn` group) |
 | Office | FreeOffice 2024 (via official SoftMaker installer) |
 
 ### 📱 Flatpaks (Flathub)
@@ -159,5 +160,3 @@ repos → update → RPMs → FreeOffice → Flatpaks → NVIDIA → Extensions 
 ```
 
 Installing everything before removing bloatware prevents dependency issues (e.g. FreeOffice is installed before LibreOffice is removed).
-
-
