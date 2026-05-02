@@ -5,6 +5,25 @@ Automates repositories, codecs, drivers, RPM packages, Flatpaks, GNOME extension
 
 ---
 
+## 📝 Important Notes
+
+**NVIDIA + Secure Boot**  
+If Secure Boot is enabled, the script detects it and prompts for confirmation before proceeding. After installation, the `akmod` kernel module must be manually signed. See: [RPM Fusion — Secure Boot](https://rpmfusion.org/Howto/Secure%20Boot)
+
+**CUDA Toolkit**  
+The RPM Fusion driver already includes CUDA runtime support for applications (Blender, OBS, etc.). The full CUDA Toolkit (`nvcc`, cuBLAS, headers) is optional and installed from the official NVIDIA repository upon interactive confirmation, with automatic exclusion of packages that conflict with RPM Fusion.
+
+**VLC as default player**  
+GNOME's system-level `gnome-mimeapps.list` can override user-level defaults. The script uses three methods simultaneously — `xdg-mime`, `gio mime`, and direct writes to `~/.config/mimeapps.list` — to reliably set VLC as the default for all common audio and video formats.
+
+**FreeOffice**  
+Installed via the official SoftMaker script *before* LibreOffice is removed, ensuring no gap in office suite availability.
+
+**Non-blocking failures**  
+The script uses a `try()` function — if any step fails (package already installed, unavailable, network error, etc.), it logs a warning and continues. No single failure aborts the entire process.
+
+---
+
 ## ✨ What the script does
 
 ### 📦 Repositories
@@ -138,21 +157,3 @@ Installing everything before removing bloatware prevents dependency issues (e.g.
 
 ---
 
-## 📝 Important Notes
-
-**NVIDIA + Secure Boot**  
-If Secure Boot is enabled, the script detects it and prompts for confirmation before proceeding. After installation, the `akmod` kernel module must be manually signed. See: [RPM Fusion — Secure Boot](https://rpmfusion.org/Howto/Secure%20Boot)
-
-**CUDA Toolkit**  
-The RPM Fusion driver already includes CUDA runtime support for applications (Blender, OBS, etc.). The full CUDA Toolkit (`nvcc`, cuBLAS, headers) is optional and installed from the official NVIDIA repository upon interactive confirmation, with automatic exclusion of packages that conflict with RPM Fusion.
-
-**VLC as default player**  
-GNOME's system-level `gnome-mimeapps.list` can override user-level defaults. The script uses three methods simultaneously — `xdg-mime`, `gio mime`, and direct writes to `~/.config/mimeapps.list` — to reliably set VLC as the default for all common audio and video formats.
-
-**FreeOffice**  
-Installed via the official SoftMaker script *before* LibreOffice is removed, ensuring no gap in office suite availability.
-
-**Non-blocking failures**  
-The script uses a `try()` function — if any step fails (package already installed, unavailable, network error, etc.), it logs a warning and continues. No single failure aborts the entire process.
-
----
