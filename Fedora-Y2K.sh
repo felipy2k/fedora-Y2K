@@ -531,6 +531,27 @@ apply_settings() {
 
   ok "VLC set as default for audio and video (xdg-mime + gio mime + mimeapps.list)."
 
+  # ── Chrome: Wayland + touchpad two-finger back/forward gestures ──
+  step "Configuring Chrome for Wayland touchpad gestures"
+
+  FLAGS_FILE="$HOME/.config/chrome-flags.conf"
+  mkdir -p "$HOME/.config"
+  grep -qxF '--ozone-platform=wayland' "$FLAGS_FILE" 2>/dev/null \
+    || echo '--ozone-platform=wayland' >> "$FLAGS_FILE"
+  grep -qxF '--enable-features=TouchpadOverscrollHistoryNavigation' "$FLAGS_FILE" 2>/dev/null \
+    || echo '--enable-features=TouchpadOverscrollHistoryNavigation' >> "$FLAGS_FILE"
+
+  DESKTOP_SRC="/usr/share/applications/google-chrome.desktop"
+  DESKTOP_DEST="$HOME/.local/share/applications/google-chrome.desktop"
+  mkdir -p "$HOME/.local/share/applications"
+  if [[ -f "$DESKTOP_SRC" ]]; then
+    cp "$DESKTOP_SRC" "$DESKTOP_DEST"
+    sed -i '/^Exec=\/usr\/bin\/google-chrome-stable/ s|%U|--ozone-platform=wayland --enable-features=TouchpadOverscrollHistoryNavigation %U|g' "$DESKTOP_DEST"
+    ok "Chrome configured for Wayland and touchpad gestures."
+  else
+    warning "google-chrome.desktop not found — Chrome may not be installed yet. Re-run option [8] after installing Chrome."
+  fi
+
   # ── Wallpaper ──
   step "Downloading and applying wallpaper"
   WALLPAPER_URL="https://images-assets.nasa.gov/image/art002e009287/art002e009287~large.jpg?w=1920&h=1280&fit=clip&crop=faces%2Cfocalpoint"
