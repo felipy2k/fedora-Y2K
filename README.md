@@ -16,6 +16,9 @@ The RPM Fusion driver already includes CUDA runtime support for applications (Bl
 **VLC as default player**  
 GNOME's system-level `gnome-mimeapps.list` can override user-level defaults. The script uses three methods simultaneously — `xdg-mime`, `gio mime`, and direct writes to `~/.config/mimeapps.list` — to reliably set VLC as the default for all common audio and video formats.
 
+**Chrome touchpad gestures**  
+The script enables two-finger swipe back/forward in Chrome by writing `--ozone-platform=wayland` and `--enable-features=TouchpadOverscrollHistoryNavigation` to `~/.config/chrome-flags.conf` and to a user-level copy of the `.desktop` file. The operation is idempotent — safe to run multiple times. If Chrome isn't installed yet when option `[8]` is run in isolation, the script warns and prompts you to re-run after installation.
+
 **FreeOffice**  
 Installed via the official SoftMaker script *before* LibreOffice is removed, ensuring no gap in office suite availability.
 
@@ -84,6 +87,7 @@ The script uses a `try()` function — if any step fails (package already instal
 - **Audio player** → VLC — same 3-method approach, covering 9 audio MIME types
 - **Title bar buttons** → Minimize + Maximize + Close, positioned on the right (`gsettings`)
 - **Dock shortcuts** → Chrome · Files · Text Editor · Terminal (Ptyxis) · Calculator · App Grid
+- **Chrome touchpad gestures** → Two-finger swipe back/forward enabled via `--ozone-platform=wayland` and `--enable-features=TouchpadOverscrollHistoryNavigation`, written to `chrome-flags.conf` and the user-level `.desktop` file
 
 ### 🧹 Bloatware Removed
 
@@ -103,8 +107,8 @@ The script uses a `try()` function — if any step fails (package already instal
 - Clock with date and seconds visible
 - Minimize and Maximize buttons enabled (right side of title bar)
 - Dock shortcuts configured (Chrome, Files, Text Editor, Ptyxis, Calculator)
+- Chrome configured for Wayland with two-finger touchpad back/forward gestures
 - NASA wallpaper applied automatically
-  https://images-assets.nasa.gov/image/art002e009287/art002e009287~large.jpg?w=1920&h=1280&fit=clip&crop=faces%2Cfocalpoint
 
 ---
 
@@ -156,5 +160,6 @@ Installing everything before removing bloatware prevents dependency issues (e.g.
 - Internet connection
 - A user account with `sudo` access
 
----
+nse
 
+MIT — use, modify, and distribute freely.
