@@ -167,40 +167,6 @@ Installed via the official SoftMaker script *before* LibreOffice is removed, ens
 **Non-blocking failures**  
 The script uses a `try()` function — if any step fails (package already installed, unavailable, network error, etc.), it logs a warning and continues. No single failure aborts the entire process.
 
----
-
-## ✅ Final Verification
-
-Option **[9]** runs a full system check and reports:
-
-- Unwanted packages still present (including `gnome-terminal` and `gnome-extensions-app`)
-- Expected RPM packages installed (Blender, Steam, DreamChess, VLC, Chrome, etc.)
-- Codec status — full ffmpeg vs. ffmpeg-free
-- Default browser, video player, and audio player — with explicit pass/fail indicators
-- Title bar button layout — confirms Minimize/Maximize are active
-- Installed Flatpaks (including Podman Desktop)
-- NVIDIA driver and CUDA status
-- Active GNOME extensions
-
----
-
-## 🔬 Script Quality
-
-Validated with **ShellCheck** (zero warnings at style level) and automated checks:
-
-- ✅ Bash syntax (`bash -n`)
-- ✅ ShellCheck clean (style level — zero warnings)
-- ✅ All 13 functions defined and wired to menu options
-- ✅ No Portuguese text
-- ✅ No remnants of removed items (Brave, Paper Clip, old wallpaper URL, etc.)
-- ✅ All required features present and verified
-
----
-
-## 📄 License
-
-MIT — use, modify, and distribute freely.
-
 How to use:
 git clone https://github.com/felipy2k/fedora-Y2K.git
 cd fedora-Y2K
