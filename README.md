@@ -5,6 +5,14 @@ Automates repositories, codecs, drivers, RPM packages, Flatpaks, GNOME extension
 
 ---
 
+## ⚙️ Requirements
+
+- Fedora Workstation **41 or later** (optimized for Fedora 44 + GNOME 50)
+- Internet connection
+- A user account with `sudo` access
+
+---
+
 ## 📝 Important Notes
 
 **NVIDIA + Secure Boot**  
@@ -151,15 +159,3 @@ repos → update → RPMs → FreeOffice → Flatpaks → NVIDIA → Extensions 
 ```
 
 Installing everything before removing bloatware prevents dependency issues (e.g. FreeOffice is installed before LibreOffice is removed).
-
----
-
-## ⚙️ Requirements
-
-- Fedora Workstation **41 or later** (optimized for Fedora 44 + GNOME 50)
-- Internet connection
-- A user account with `sudo` access
-
-nse
-
-MIT — use, modify, and distribute freely.
