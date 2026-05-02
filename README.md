@@ -1,7 +1,7 @@
 # 🎩 Fedora Post-Install Setup Script
 
 An interactive post-installation script for **Fedora Workstation 41+**, optimized for **Fedora 44 with GNOME 50**.  
-Automates repositories, codecs, drivers, RPM packages, Flatpaks, GNOME extensions, default apps, and visual settings — all through a modular interactive menu.
+Automates repositories, codecs, drivers, RPM packages, Flatpaks, GNOME extensions, default apps, dock layout, and visual settings — all through a modular interactive menu.
 
 ---
 
@@ -46,7 +46,7 @@ Automates repositories, codecs, drivers, RPM packages, Flatpaks, GNOME extension
 
 | Category | Apps |
 |---|---|
-| System | Extension Manager, Resources, Flatseal, PeaZip, Popsicle, File Shredder (Raider), LocalSend, Switcheroo |
+| System | Extension Manager, Resources, Flatseal, PeaZip, Popsicle, File Shredder (Raider), LocalSend, Switcheroo, **Podman Desktop** |
 | Multimedia | Shotcut, Video Trimmer, Camera Ctrls, Converseen |
 | Productivity | FreeCAD, Upscayl, Exhibit (3D Viewer), Minder, Motrix |
 | Entertainment | Blanket, Shortwave, Podcasts, Gcolor3, Sticky Notes, Alpaca |
@@ -59,10 +59,12 @@ Automates repositories, codecs, drivers, RPM packages, Flatpaks, GNOME extension
 - Tiling Shell
 
 ### 🎯 Default Applications & Settings
+
 - **Web browser** → Google Chrome (`xdg-settings`)
-- **Video player** → VLC — applied via `xdg-mime`, `gio mime`, and direct `mimeapps.list` write (3 methods for reliability on modern GNOME), covering 10 video MIME types
+- **Video player** → VLC — applied via `xdg-mime`, `gio mime`, and direct `mimeapps.list` write (3 methods), covering 10 video MIME types
 - **Audio player** → VLC — same 3-method approach, covering 9 audio MIME types
 - **Title bar buttons** → Minimize + Maximize + Close, positioned on the right (`gsettings`)
+- **Dock shortcuts** → Chrome · Files · Text Editor · Terminal (Ptyxis) · Calculator · App Grid
 
 ### 🧹 Bloatware Removed
 
@@ -81,6 +83,7 @@ Automates repositories, codecs, drivers, RPM packages, Flatpaks, GNOME extension
 - Color scheme: **Dark mode**
 - Clock with date and seconds visible
 - Minimize and Maximize buttons enabled (right side of title bar)
+- Dock shortcuts configured (Chrome, Files, Text Editor, Ptyxis, Calculator)
 - NASA wallpaper applied automatically
 
 ---
@@ -152,6 +155,9 @@ The RPM Fusion driver already includes CUDA runtime support for applications (Bl
 **VLC as default player**  
 GNOME's system-level `gnome-mimeapps.list` can override user-level defaults. The script uses three methods simultaneously — `xdg-mime`, `gio mime`, and direct writes to `~/.config/mimeapps.list` — to reliably set VLC as the default for all common audio and video formats.
 
+**Podman Desktop**  
+Installed from Flathub (`io.podman_desktop.PodmanDesktop`). Pairs naturally with Ptyxis, Fedora's default terminal, which has first-class container integration with Podman.
+
 **DreamChess**  
 Available as a native RPM in the Fedora repositories (`dnf install dreamchess`), not as a Flatpak.
 
@@ -172,7 +178,7 @@ Option **[9]** runs a full system check and reports:
 - Codec status — full ffmpeg vs. ffmpeg-free
 - Default browser, video player, and audio player — with explicit pass/fail indicators
 - Title bar button layout — confirms Minimize/Maximize are active
-- Installed Flatpaks
+- Installed Flatpaks (including Podman Desktop)
 - NVIDIA driver and CUDA status
 - Active GNOME extensions
 
@@ -180,9 +186,10 @@ Option **[9]** runs a full system check and reports:
 
 ## 🔬 Script Quality
 
-The script is validated with **ShellCheck** (zero warnings at style level) and passes the following automated checks:
+Validated with **ShellCheck** (zero warnings at style level) and automated checks:
 
 - ✅ Bash syntax (`bash -n`)
+- ✅ ShellCheck clean (style level — zero warnings)
 - ✅ All 13 functions defined and wired to menu options
 - ✅ No Portuguese text
 - ✅ No remnants of removed items (Brave, Paper Clip, old wallpaper URL, etc.)
