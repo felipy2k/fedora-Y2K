@@ -155,12 +155,6 @@ The RPM Fusion driver already includes CUDA runtime support for applications (Bl
 **VLC as default player**  
 GNOME's system-level `gnome-mimeapps.list` can override user-level defaults. The script uses three methods simultaneously — `xdg-mime`, `gio mime`, and direct writes to `~/.config/mimeapps.list` — to reliably set VLC as the default for all common audio and video formats.
 
-**Podman Desktop**  
-Installed from Flathub (`io.podman_desktop.PodmanDesktop`). Pairs naturally with Ptyxis, Fedora's default terminal, which has first-class container integration with Podman.
-
-**DreamChess**  
-Available as a native RPM in the Fedora repositories (`dnf install dreamchess`), not as a Flatpak.
-
 **FreeOffice**  
 Installed via the official SoftMaker script *before* LibreOffice is removed, ensuring no gap in office suite availability.
 
