@@ -81,6 +81,18 @@ gpgkey=https://dl.google.com/linux/linux_signing_key.pub
 EOF
   fi
 
+  step "Brave Browser"
+  if [[ ! -f /etc/yum.repos.d/brave-browser.repo ]]; then
+    try sudo dnf config-manager addrepo --from-repofile=https://brave-browser-rpm-release.s3.brave.com/brave-browser.repo
+    try sudo rpm --import https://brave-browser-rpm-release.s3.brave.com/brave-core.asc
+  fi
+
+  step "NordVPN"
+  if [[ ! -f /etc/yum.repos.d/nordvpn.repo ]]; then
+    try sudo dnf config-manager addrepo \
+      --from-repofile=https://repo.nordvpn.com/yum/nordvpn/latest/fedora/nordvpn.repo
+  fi
+
   try sudo dnf makecache
 }
 
@@ -164,6 +176,7 @@ install_rpms() {
     \
     `# Browsers` \
     google-chrome-stable \
+    brave-browser \
     firefox \
     torbrowser-launcher \
     \
@@ -210,7 +223,18 @@ install_rpms() {
     `# Utilities` \
     timeshift \
     solaar \
-    dreamchess
+    dreamchess \
+    nordvpn
+
+  # NordVPN post-install: enable daemon and add user to nordvpn group
+  if rpm -q nordvpn &>/dev/null; then
+    step "Enabling nordvpnd service"
+    try sudo systemctl enable --now nordvpnd
+    step "Adding $USER to nordvpn group (required to run nordvpn commands)"
+    try sudo usermod -aG nordvpn "$USER"
+    ok "NordVPN ready. Log in with: nordvpn login"
+    warning "You need to log out and back in (or reboot) for group membership to take effect."
+  fi
 }
 
 # ─────────────────────────────────────────────
@@ -590,7 +614,7 @@ verify_final() {
   echo
   echo -e "${BOLD}── RPM packages that should exist ──${NC}"
   rpm -qa | grep -E \
-    "google-chrome-stable|firefox|^vlc|audacity|darktable|handbrake|inkscape|easyeffects|^gimp|^blender|^steam|^dreamchess|obs-studio|gnome-software|papirus|softmaker|freeoffice|^solaar|timeshift|deja-dup" \
+    "google-chrome-stable|brave-browser|firefox|^vlc|audacity|darktable|handbrake|inkscape|easyeffects|^gimp|^blender|^steam|^dreamchess|^nordvpn|obs-studio|gnome-software|papirus|softmaker|freeoffice|^solaar|timeshift|deja-dup" \
     2>/dev/null || warning "Some RPM packages may not be installed."
 
   echo
