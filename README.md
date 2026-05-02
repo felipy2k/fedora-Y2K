@@ -100,13 +100,9 @@ chmod +x fedora-setup.sh
 
 # Run as a regular user (NOT as root)
 ./fedora-setup.sh
-``
+```
 
 > ⚠️ **Do not run as root.** The script uses `sudo` internally where needed.
-
-or: git clone https://github.com/felipy2k/fedora-Y2K.git
-cd fedora-Y2K
-bash Fedora-Y2K.sh
 
 ---
 
@@ -159,8 +155,16 @@ The RPM Fusion driver already includes CUDA runtime support for applications (Bl
 **VLC as default player**  
 GNOME's system-level `gnome-mimeapps.list` can override user-level defaults. The script uses three methods simultaneously — `xdg-mime`, `gio mime`, and direct writes to `~/.config/mimeapps.list` — to reliably set VLC as the default for all common audio and video formats.
 
+**Podman Desktop**  
+Installed from Flathub (`io.podman_desktop.PodmanDesktop`). Pairs naturally with Ptyxis, Fedora's default terminal, which has first-class container integration with Podman.
+
+**DreamChess**  
+Available as a native RPM in the Fedora repositories (`dnf install dreamchess`), not as a Flatpak.
+
 **FreeOffice**  
 Installed via the official SoftMaker script *before* LibreOffice is removed, ensuring no gap in office suite availability.
 
 **Non-blocking failures**  
 The script uses a `try()` function — if any step fails (package already installed, unavailable, network error, etc.), it logs a warning and continues. No single failure aborts the entire process.
+
+---
