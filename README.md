@@ -27,6 +27,9 @@ GNOME's system-level `gnome-mimeapps.list` can override user-level defaults. The
 **Chrome touchpad gestures**  
 The script enables two-finger swipe back/forward in Chrome by writing `--ozone-platform=wayland` and `--enable-features=TouchpadOverscrollHistoryNavigation` to `~/.config/chrome-flags.conf` and to a user-level copy of the `.desktop` file. The operation is idempotent — safe to run multiple times. If Chrome isn't installed yet when option `[8]` is run in isolation, the script warns and prompts you to re-run after installation.
 
+**RPM Fusion update conflicts**  
+When Fedora releases a system update (e.g. `ffmpeg-free`, `mesa`) and RPM Fusion hasn't yet published the corresponding freeworld package, DNF/GNOME Software can throw confusing dependency errors. The script sets `best=False` in `/etc/dnf/dnf.conf` — this tells DNF to skip unresolvable packages rather than abort the entire update, so your system keeps updating normally until RPM Fusion catches up (usually within hours or days).
+
 **FreeOffice**  
 Installed via the official SoftMaker script *before* LibreOffice is removed, ensuring no gap in office suite availability.
 
@@ -45,8 +48,10 @@ The script uses a `try()` function — if any step fails (package already instal
 
 ### 🎬 Multimedia Codecs
 - Swaps `ffmpeg-free` for full `ffmpeg` (H.264, H.265, AAC, MP3, and more)
-- `dnf group upgrade multimedia` + `sound-and-video` (official Fedora/RPM Fusion method)
-- Full GStreamer stack: `libav`, `ugly`, `bad-freeworld`, `openh264`
+- Individual GStreamer packages installed directly — compatible with **DNF5 (Fedora 43+)**, where the `@multimedia` group is no longer recognized:
+  `base`, `good`, `bad-free`, `bad-freeworld`, `ugly`, `ugly-free`, `plugin-libav`, `openh264`
+- `lame` + `lame-libs` (MP3 encoding), `mozilla-openh264` (H.264 for Firefox/WebRTC)
+- `best=False` added to `/etc/dnf/dnf.conf` — prevents update failures when RPM Fusion freeworld packages temporarily lag behind Fedora updates
 - Hardware acceleration (VA-API/VDPAU) auto-detected by GPU:
   - **AMD** → `mesa-va-drivers-freeworld` + `mesa-vdpau-drivers-freeworld`
   - **Intel** → `intel-media-driver` + `libva-intel-driver`
