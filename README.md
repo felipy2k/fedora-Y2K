@@ -91,15 +91,9 @@ Automates repositories, codecs, drivers, RPM packages, Flatpaks, GNOME extension
 ## 🚀 How to use
 
 ```bash
-# Clone the repository
-git clone https://github.com/YOUR_USERNAME/fedora-setup.git
-cd fedora-setup
-
-# Make it executable
-chmod +x fedora-setup.sh
-
-# Run as a regular user (NOT as root)
-./fedora-setup.sh
+git clone https://github.com/felipy2k/fedora-Y2K.git
+cd fedora-Y2K
+bash Fedora-Y2K.sh
 ```
 
 > ⚠️ **Do not run as root.** The script uses `sudo` internally where needed.
@@ -162,7 +156,3 @@ Installed via the official SoftMaker script *before* LibreOffice is removed, ens
 The script uses a `try()` function — if any step fails (package already installed, unavailable, network error, etc.), it logs a warning and continues. No single failure aborts the entire process.
 
 ---
-
-git clone https://github.com/felipy2k/fedora-Y2K.git
-cd fedora-Y2K
-bash Fedora-Y2K.sh
