@@ -103,6 +103,11 @@ update_system() {
   info "[SYSTEM] Updating system"
   # Keep only 2 old kernels to save disk space
   try sudo sed -i 's/^installonly_limit=.*/installonly_limit=2/' /etc/dnf/dnf.conf
+  # Prevent update failures when RPM Fusion freeworld packages lag behind
+  # Fedora updates (e.g. ffmpeg, mesa-va-drivers-freeworld). With best=False,
+  # DNF skips packages it can't resolve instead of aborting the whole transaction.
+  grep -q '^best=False' /etc/dnf/dnf.conf 2>/dev/null \
+    || try sudo sed -i '/^\[main\]/a best=False' /etc/dnf/dnf.conf
   try sudo dnf upgrade --refresh -y
 }
 
@@ -116,24 +121,20 @@ install_codecs() {
   step "Swapping ffmpeg-free for full ffmpeg (with proprietary codecs)"
   try sudo dnf swap -y ffmpeg-free ffmpeg --allowerasing
 
-  step "Upgrading @multimedia group (resolves H.264, H.265, AAC, etc.)"
-  try sudo dnf group upgrade -y multimedia \
-    --setopt="install_weak_deps=False" \
-    --exclude=PackageKit-gstreamer-plugin
-
-  step "Upgrading @sound-and-video group"
-  try sudo dnf group upgrade -y sound-and-video
-
-  step "Explicit GStreamer packages (coverage guarantee)"
+  # DNF5 (Fedora 43+) does not recognize the @multimedia group.
+  # Install equivalent packages individually for full compatibility.
+  step "Installing GStreamer codec stack (DNF5-compatible individual packages)"
   try sudo dnf install -y --skip-unavailable \
-    gstreamer1-libav \
+    --setopt="install_weak_deps=False" \
+    --exclude=PackageKit-gstreamer-plugin \
     gstreamer1-plugins-base \
     gstreamer1-plugins-good \
     gstreamer1-plugins-bad-free \
     gstreamer1-plugins-bad-freeworld \
     gstreamer1-plugins-ugly \
+    gstreamer1-plugins-ugly-free \
     gstreamer1-plugin-openh264 \
-    libavcodec-freeworld \
+    gstreamer1-plugin-libav \
     lame \
     lame-libs \
     mozilla-openh264
@@ -560,9 +561,9 @@ apply_settings() {
 
   FLAGS_FILE="$HOME/.config/chrome-flags.conf"
   mkdir -p "$HOME/.config"
-  grep -qxF '--ozone-platform=wayland' "$FLAGS_FILE" 2>/dev/null \
+  grep -qxF -- '--ozone-platform=wayland' "$FLAGS_FILE" 2>/dev/null \
     || echo '--ozone-platform=wayland' >> "$FLAGS_FILE"
-  grep -qxF '--enable-features=TouchpadOverscrollHistoryNavigation' "$FLAGS_FILE" 2>/dev/null \
+  grep -qxF -- '--enable-features=TouchpadOverscrollHistoryNavigation' "$FLAGS_FILE" 2>/dev/null \
     || echo '--enable-features=TouchpadOverscrollHistoryNavigation' >> "$FLAGS_FILE"
 
   DESKTOP_SRC="/usr/share/applications/google-chrome.desktop"
