@@ -159,3 +159,37 @@ repos → update → RPMs → FreeOffice → Flatpaks → NVIDIA → Extensions 
 ```
 
 Installing everything before removing bloatware prevents dependency issues (e.g. FreeOffice is installed before LibreOffice is removed).
+
+---
+
+## ✅ Final Verification
+
+Option **[9]** runs a full system check and reports:
+
+- Unwanted packages still present (including `gnome-terminal` and `gnome-extensions-app`)
+- Expected RPM packages installed (Blender, Steam, DreamChess, VLC, Chrome, etc.)
+- Codec status — full ffmpeg vs. ffmpeg-free
+- Default browser, video player, and audio player — with explicit pass/fail indicators
+- Title bar button layout — confirms Minimize/Maximize are active
+- Installed Flatpaks (including Podman Desktop)
+- NVIDIA driver and CUDA status
+- Active GNOME extensions
+
+---
+
+## 🔬 Script Quality
+
+Validated with **ShellCheck** (zero warnings at style level) and automated checks:
+
+- ✅ Bash syntax (`bash -n`)
+- ✅ ShellCheck clean (style level — zero warnings)
+- ✅ All 13 functions defined and wired to menu options
+- ✅ No Portuguese text
+- ✅ No remnants of removed items (Paper Clip, old wallpaper URL, etc.)
+- ✅ All required features present and verified
+
+---
+
+## 📄 License
+
+MIT — use, modify, and distribute freely.
