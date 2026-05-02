@@ -33,6 +33,15 @@ When Fedora releases a system update (e.g. `ffmpeg-free`, `mesa`) and RPM Fusion
 **FreeOffice**  
 Installed via the official SoftMaker script *before* LibreOffice is removed, ensuring no gap in office suite availability.
 
+**Reliability & recovery**  
+The script ships several safety features:
+- **Logging** — every run writes a full timestamped log to `~/fedora-y2k-YYYYMMDD-HHMMSS.log`
+- **Robust error handling** — failures in any single step are logged as warnings and never abort the script
+- **Disk space check** — warns if `/` has less than 15 GB free before a full install
+- **Package backup** — before removing bloatware, the full RPM list is saved to `~/fedora-y2k-packages-before-cleanup-*.txt` so you can restore everything with `sudo dnf install $(cat <file>)`
+- **Final summary** — at the end, the script reports total warnings encountered and the log path
+- **Idempotent** — safe to re-run; already-applied changes (ffmpeg swap, mesa drivers, Chrome flags, dnf.conf) are skipped
+
 **Non-blocking failures**  
 The script uses a `try()` function — if any step fails (package already installed, unavailable, network error, etc.), it logs a warning and continues. No single failure aborts the entire process.
 
