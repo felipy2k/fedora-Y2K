@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 
-set -euo pipefail
+set -uo pipefail
+
+# Setup logging — captures all output to a timestamped log file in $HOME
+LOG_FILE="$HOME/fedora-y2k-$(date +%Y%m%d-%H%M%S).log"
+exec > >(tee -a "$LOG_FILE") 2>&1
 
 RED='\033[0;31m'
 YELLOW='\033[1;33m'
@@ -12,14 +16,24 @@ NC='\033[0m'
 
 info()    { echo -e "\n${GREEN}▶ $*${NC}"; }
 step()    { echo -e "  ${CYAN}→ $*${NC}"; }
-warning() { echo -e "  ${YELLOW}⚠ $*${NC}"; }
+warning() { echo -e "  ${YELLOW}⚠ $*${NC}"; ((WARN_COUNT++)) || true; }
 fail()    { echo -e "${RED}✗ $*${NC}"; }
 ok()      { echo -e "  ${GREEN}✓ $*${NC}"; }
 
+# Counter to summarize warnings at the end
+WARN_COUNT=0
+
+# Robust try() — works correctly with set -e/pipefail by toggling it locally.
+# Returns 0 always, so a failure inside try() never aborts the script.
 try() {
-  if ! "$@"; then
-    warning "Failed, continuing: $*"
+  set +e
+  "$@"
+  local rc=$?
+  set -e
+  if [[ $rc -ne 0 ]]; then
+    warning "Failed (exit $rc), continuing: $*"
   fi
+  return 0
 }
 
 if [[ "$EUID" -eq 0 ]]; then
@@ -119,7 +133,11 @@ install_codecs() {
   info "[CODECS] Installing multimedia codecs (official method)"
 
   step "Swapping ffmpeg-free for full ffmpeg (with proprietary codecs)"
-  try sudo dnf swap -y ffmpeg-free ffmpeg --allowerasing
+  if rpm -q ffmpeg-free &>/dev/null; then
+    try sudo dnf swap -y ffmpeg-free ffmpeg --allowerasing
+  else
+    ok "ffmpeg-free already swapped (skipping)."
+  fi
 
   # DNF5 (Fedora 43+) does not recognize the @multimedia group.
   # Install equivalent packages individually for full compatibility.
@@ -143,8 +161,12 @@ install_codecs() {
   # Auto-detects GPU to apply the correct freeworld drivers
   if lspci | grep -i 'vga\|3d\|display' | grep -qi 'amd\|radeon\|ati'; then
     step "AMD GPU detected — installing mesa freeworld drivers"
-    try sudo dnf swap -y mesa-va-drivers mesa-va-drivers-freeworld
-    try sudo dnf swap -y mesa-vdpau-drivers mesa-vdpau-drivers-freeworld
+    if rpm -q mesa-va-drivers &>/dev/null && ! rpm -q mesa-va-drivers-freeworld &>/dev/null; then
+      try sudo dnf swap -y mesa-va-drivers mesa-va-drivers-freeworld
+    fi
+    if rpm -q mesa-vdpau-drivers &>/dev/null && ! rpm -q mesa-vdpau-drivers-freeworld &>/dev/null; then
+      try sudo dnf swap -y mesa-vdpau-drivers mesa-vdpau-drivers-freeworld
+    fi
   fi
 
   if lspci | grep -i 'vga\|3d\|display' | grep -qi 'intel'; then
