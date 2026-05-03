@@ -15,6 +15,9 @@ Automates repositories, codecs, drivers, RPM packages, Flatpaks, GNOME extension
 
 ## 📝 Important Notes
 
+**RPM Fusion update conflicts**  
+When Fedora releases a system update (e.g. `ffmpeg-free`, `mesa`) and RPM Fusion hasn't yet published the corresponding freeworld package, DNF/GNOME Software can throw confusing dependency errors. The script sets `best=False` in `/etc/dnf/dnf.conf` **only after all packages are installed** — this tells DNF to skip unresolvable packages rather than abort future updates, without affecting the initial installation.
+
 **NVIDIA + Secure Boot**  
 If Secure Boot is enabled, the script detects it and prompts for confirmation before proceeding. After installation, the `akmod` kernel module must be manually signed. See: [RPM Fusion — Secure Boot](https://rpmfusion.org/Howto/Secure%20Boot)
 
@@ -25,25 +28,26 @@ The RPM Fusion driver already includes CUDA runtime support for applications (Bl
 GNOME's system-level `gnome-mimeapps.list` can override user-level defaults. The script uses three methods simultaneously — `xdg-mime`, `gio mime`, and direct writes to `~/.config/mimeapps.list` — to reliably set VLC as the default for all common audio and video formats.
 
 **Chrome touchpad gestures**  
-The script enables two-finger swipe back/forward in Chrome by writing `--ozone-platform=wayland` and `--enable-features=TouchpadOverscrollHistoryNavigation` to `~/.config/chrome-flags.conf` and to a user-level copy of the `.desktop` file. The operation is idempotent — safe to run multiple times. If Chrome isn't installed yet when option `[8]` is run in isolation, the script warns and prompts you to re-run after installation.
+The script enables two-finger swipe back/forward in Chrome by writing `--ozone-platform=wayland` and `--enable-features=TouchpadOverscrollHistoryNavigation` to `~/.config/chrome-flags.conf` and to a user-level copy of the `.desktop` file. The operation is idempotent — safe to run multiple times.
 
-**RPM Fusion update conflicts**  
-When Fedora releases a system update (e.g. `ffmpeg-free`, `mesa`) and RPM Fusion hasn't yet published the corresponding freeworld package, DNF/GNOME Software can throw confusing dependency errors. The script sets `best=False` in `/etc/dnf/dnf.conf` — this tells DNF to skip unresolvable packages rather than abort the entire update, so your system keeps updating normally until RPM Fusion catches up (usually within hours or days).
+**NordVPN**  
+Installed via the official NordVPN installer (`downloads.nordcdn.com`), which handles the repository, GPG key, and package in one step. Both **CLI and GUI** are installed (`-p nordvpn-gui`). The `nordvpnd` daemon is enabled automatically and your user is added to the `nordvpn` group. After installation, run `nordvpn login` and use `newgrp nordvpn` for immediate use without logout.
 
 **FreeOffice**  
-Installed via the official SoftMaker script *before* LibreOffice is removed, ensuring no gap in office suite availability.
+Installed via the official SoftMaker script *before* LibreOffice is removed, ensuring no gap in office suite availability. Connectivity is checked first — if offline, the step is skipped with instructions to retry.
 
 **Reliability & recovery**  
 The script ships several safety features:
 - **Logging** — every run writes a full timestamped log to `~/fedora-y2k-YYYYMMDD-HHMMSS.log`
 - **Robust error handling** — failures in any single step are logged as warnings and never abort the script
+- **Grouped installs** — RPM packages are installed in 7 independent groups (Base tools, Browsers, Multimedia, Graphics, Gaming, GNOME apps, Utilities), so a failure in one group is visible and isolated
 - **Disk space check** — warns if `/` has less than 15 GB free before a full install
-- **Package backup** — before removing bloatware, the full RPM list is saved to `~/fedora-y2k-packages-before-cleanup-*.txt` so you can restore everything with `sudo dnf install $(cat <file>)`
-- **Final summary** — at the end, the script reports total warnings encountered and the log path
+- **Package backup** — before removing bloatware, the full RPM list is saved to `~/fedora-y2k-packages-before-cleanup-*.txt`
+- **Final summary** — reports total warnings encountered and the log path
 - **Idempotent** — safe to re-run; already-applied changes (ffmpeg swap, mesa drivers, Chrome flags, dnf.conf) are skipped
 
 **Non-blocking failures**  
-The script uses a `try()` function — if any step fails (package already installed, unavailable, network error, etc.), it logs a warning and continues. No single failure aborts the entire process.
+The `try()` function wraps every command — if anything fails, it logs a warning and continues. No single failure aborts the process.
 
 ---
 
@@ -54,25 +58,25 @@ The script uses a `try()` function — if any step fails (package already instal
 - RPM Fusion Tainted (extra firmware and codecs)
 - `fedora-cisco-openh264` (H.264 for Firefox and WebRTC)
 - Google Chrome
+- Brave Browser
 
 ### 🎬 Multimedia Codecs
-- Swaps `ffmpeg-free` for full `ffmpeg` (H.264, H.265, AAC, MP3, and more)
-- Individual GStreamer packages installed directly — compatible with **DNF5 (Fedora 43+)**, where the `@multimedia` group is no longer recognized:
+- Swaps `ffmpeg-free` for full `ffmpeg` (H.264, H.265, AAC, MP3, and more) — idempotent
+- Individual GStreamer packages installed directly — compatible with **DNF5 (Fedora 43+)**:
   `base`, `good`, `bad-free`, `bad-freeworld`, `ugly`, `ugly-free`, `plugin-libav`, `openh264`
 - `lame` + `lame-libs` (MP3 encoding), `mozilla-openh264` (H.264 for Firefox/WebRTC)
-- `best=False` added to `/etc/dnf/dnf.conf` — prevents update failures when RPM Fusion freeworld packages temporarily lag behind Fedora updates
-- Hardware acceleration (VA-API/VDPAU) auto-detected by GPU:
+- Hardware acceleration (VA-API/VDPAU) auto-detected by GPU — idempotent swaps:
   - **AMD** → `mesa-va-drivers-freeworld` + `mesa-vdpau-drivers-freeworld`
   - **Intel** → `intel-media-driver` + `libva-intel-driver`
   - **NVIDIA** → handled by the dedicated driver section
 
 ### 🖥️ NVIDIA Driver + CUDA
-- GPU auto-detection filtered to VGA/3D/Display class devices only (avoids false positives)
-- Secure Boot detection with warning and confirmation prompt before proceeding
+- GPU auto-detection using PCI class codes (`0300`, `0302`, `0380`) — avoids false positives
+- Secure Boot detection with warning and confirmation prompt
 - Installs via RPM Fusion: `akmod-nvidia`, `xorg-x11-drv-nvidia-cuda`, `nvidia-settings`, `nvidia-vaapi-driver`
 - Builds the kernel module with `akmods --force` and regenerates initramfs via `dracut --force`
 - Enables power management services (`nvidia-hibernate`, `nvidia-resume`, `nvidia-suspend`)
-- Optional: adds the official NVIDIA CUDA repository for the full Toolkit (`nvcc`, cuBLAS, headers), with automatic conflict exclusion against RPM Fusion packages
+- Optional: full CUDA Toolkit (`nvcc`, cuBLAS, headers) via official NVIDIA repo, with automatic conflict exclusion
 
 ### 📥 RPM Packages Installed
 
@@ -84,14 +88,14 @@ The script uses a `try()` function — if any step fails (package already instal
 | Gaming | Steam |
 | GNOME Apps | Tweaks, Baobab, Déjà Dup, Boxes, Calculator, Calendar, Snapshot, Characters, Connections, Contacts, Simple Scan, Disk Utility, Text Editor, Font Viewer, Color Manager, Software, Clocks, Logs, Evince, Loupe |
 | Utilities | Timeshift, Solaar, fastfetch, pipx, DreamChess, lm_sensors |
-| VPN | **NordVPN** (official repo, daemon enabled, user added to `nordvpn` group) |
+| VPN | **NordVPN** CLI + GUI (official installer, daemon enabled, user added to group) |
 | Office | FreeOffice 2024 (via official SoftMaker installer) |
 
 ### 📱 Flatpaks (Flathub)
 
 | Category | Apps |
 |---|---|
-| System | Extension Manager, Resources, Flatseal, PeaZip, Popsicle, File Shredder (Raider), LocalSend, Switcheroo, **Podman Desktop** |
+| System | Extension Manager, Resources, Flatseal, PeaZip, Popsicle, File Shredder (Raider), LocalSend, Switcheroo, Podman Desktop |
 | Multimedia | Shotcut, Video Trimmer, Camera Ctrls, Converseen |
 | Productivity | FreeCAD, Upscayl, Exhibit (3D Viewer), Minder, Motrix |
 | Entertainment | Blanket, Shortwave, Podcasts, Gcolor3, Sticky Notes, Alpaca |
@@ -106,13 +110,12 @@ The script uses a `try()` function — if any step fails (package already instal
 - Vitals (CPU, RAM, temperatures, fan speed, network — uses `lm_sensors` for hardware data)
 
 ### 🎯 Default Applications & Settings
-
-- **Web browser** → Google Chrome (`xdg-settings`)
-- **Video player** → VLC — applied via `xdg-mime`, `gio mime`, and direct `mimeapps.list` write (3 methods), covering 10 video MIME types
-- **Audio player** → VLC — same 3-method approach, covering 9 audio MIME types
-- **Title bar buttons** → Minimize + Maximize + Close, positioned on the right (`gsettings`)
-- **Dock shortcuts** → Chrome · Files · Text Editor · Terminal (Ptyxis) · Calculator · App Grid
-- **Chrome touchpad gestures** → Two-finger swipe back/forward enabled via `--ozone-platform=wayland` and `--enable-features=TouchpadOverscrollHistoryNavigation`, written to `chrome-flags.conf` and the user-level `.desktop` file
+- **Web browser** → Google Chrome
+- **Video player** → VLC (xdg-mime + gio mime + mimeapps.list, 10 video MIME types)
+- **Audio player** → VLC (same 3-method approach, 9 audio MIME types)
+- **Title bar buttons** → Minimize + Maximize + Close, right side
+- **Dock shortcuts** → Chrome · Files · Text Editor · Ptyxis · Calculator · App Grid
+- **Chrome touchpad** → Two-finger swipe back/forward via Wayland flags
 
 ### 🧹 Bloatware Removed
 
@@ -131,9 +134,9 @@ The script uses a `try()` function — if any step fails (package already instal
 - Color scheme: **Dark mode**
 - Clock with date and seconds visible
 - Minimize and Maximize buttons enabled (right side of title bar)
-- Dock shortcuts configured (Chrome, Files, Text Editor, Ptyxis, Calculator)
-- Chrome configured for Wayland with two-finger touchpad back/forward gestures
-- NASA wallpaper applied automatically (https://images-assets.nasa.gov/image/art002e009287/art002e009287~large.jpg?w=1920&h=1280&fit=clip&crop=faces%2Cfocalpoint)
+- Dock shortcuts configured
+- Chrome configured for Wayland with two-finger touchpad gestures
+- NASA wallpaper applied automatically
 
 ---
 
@@ -169,10 +172,8 @@ bash Fedora-Y2K.sh
 ╚═══════════════════════════════════════════════════════════════╝
 ```
 
-Each step can be run individually. Option **[1] Run EVERYTHING** ensures the correct execution order:
+Option **[1] Run EVERYTHING** ensures the correct execution order:
 
 ```
-repos → update → RPMs → FreeOffice → Flatpaks → NVIDIA → Extensions → Remove bloat → Settings
+repos → update → RPMs (+ NordVPN) → FreeOffice → Flatpaks → NVIDIA → Extensions → Remove bloat → Settings → best=False
 ```
-
-Installing everything before removing bloatware prevents dependency issues (e.g. FreeOffice is installed before LibreOffice is removed).
