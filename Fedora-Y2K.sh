@@ -117,12 +117,20 @@ update_system() {
   info "[SYSTEM] Updating system"
   # Keep only 2 old kernels to save disk space
   try sudo sed -i 's/^installonly_limit=.*/installonly_limit=2/' /etc/dnf/dnf.conf
-  # Prevent update failures when RPM Fusion freeworld packages lag behind
-  # Fedora updates (e.g. ffmpeg, mesa-va-drivers-freeworld). With best=False,
-  # DNF skips packages it can't resolve instead of aborting the whole transaction.
-  grep -q '^best=False' /etc/dnf/dnf.conf 2>/dev/null \
-    || try sudo sed -i '/^\[main\]/a best=False' /etc/dnf/dnf.conf
   try sudo dnf upgrade --refresh -y
+}
+
+# Apply best=False only AFTER all installs are done.
+# This prevents DNF from silently skipping packages during the initial install
+# transactions, but still protects against future RPM Fusion update conflicts.
+apply_dnf_safety_setting() {
+  info "[DNF CONFIG] Applying best=False for future updates"
+  if ! grep -q '^best=False' /etc/dnf/dnf.conf 2>/dev/null; then
+    try sudo sed -i '/^\[main\]/a best=False' /etc/dnf/dnf.conf
+    ok "best=False added to dnf.conf (protects future updates from RPM Fusion lag)."
+  else
+    ok "best=False already set in dnf.conf."
+  fi
 }
 
 # ─────────────────────────────────────────────
@@ -142,7 +150,7 @@ install_codecs() {
   # DNF5 (Fedora 43+) does not recognize the @multimedia group.
   # Install equivalent packages individually for full compatibility.
   step "Installing GStreamer codec stack (DNF5-compatible individual packages)"
-  try sudo dnf install -y --skip-unavailable \
+  try sudo dnf install -y \
     --setopt="install_weak_deps=False" \
     --exclude=PackageKit-gstreamer-plugin \
     gstreamer1-plugins-base \
@@ -159,7 +167,7 @@ install_codecs() {
 
   step "Hardware video acceleration (VA-API/VDPAU)"
   # Auto-detects GPU to apply the correct freeworld drivers
-  if lspci | grep -i 'vga\|3d\|display' | grep -qi 'amd\|radeon\|ati'; then
+  if lspci -d ::0300 -d ::0302 -d ::0380 2>/dev/null | grep -qi 'amd\|radeon\|ati'; then
     step "AMD GPU detected — installing mesa freeworld drivers"
     if rpm -q mesa-va-drivers &>/dev/null && ! rpm -q mesa-va-drivers-freeworld &>/dev/null; then
       try sudo dnf swap -y mesa-va-drivers mesa-va-drivers-freeworld
@@ -169,7 +177,7 @@ install_codecs() {
     fi
   fi
 
-  if lspci | grep -i 'vga\|3d\|display' | grep -qi 'intel'; then
+  if lspci -d ::0300 -d ::0302 -d ::0380 2>/dev/null | grep -qi 'intel'; then
     step "Intel GPU detected — installing intel-media-driver"
     try sudo dnf install -y --skip-unavailable intel-media-driver libva-intel-driver
   fi
@@ -185,69 +193,40 @@ install_rpms() {
 
   install_codecs
 
-  try sudo dnf install -y --skip-unavailable \
-    \
-    `# Base tools` \
-    dnf-plugins-core \
-    git \
-    wget \
-    curl \
-    flatpak \
-    fastfetch \
-    pipx \
-    papirus-icon-theme \
-    \
-    `# Browsers` \
-    google-chrome-stable \
-    brave-browser \
-    firefox \
-    torbrowser-launcher \
-    \
-    `# Multimedia` \
-    vlc \
-    audacity \
-    darktable \
-    handbrake-gui \
-    easyeffects \
-    obs-studio \
-    \
-    `# Graphics / Editing / 3D` \
-    gimp \
-    inkscape \
-    blender \
-    \
-    `# Gaming` \
-    steam \
-    \
-    `# GNOME Apps` \
-    gnome-tweaks \
-    baobab \
-    nautilus \
-    deja-dup \
-    gnome-boxes \
-    gnome-calculator \
-    gnome-calendar \
-    snapshot \
-    gnome-characters \
-    gnome-abrt \
-    gnome-connections \
-    gnome-contacts \
-    simple-scan \
-    gnome-disk-utility \
-    gnome-text-editor \
-    gnome-font-viewer \
-    gnome-color-manager \
-    gnome-software \
-    gnome-clocks \
-    gnome-logs \
-    evince \
-    loupe \
-    \
-    `# Utilities` \
-    timeshift \
-    solaar \
-    dreamchess \
-    nordvpn
+  # Install in logical groups so a failure in one group doesn't silently
+  # cascade and skip everything else. Each group has its own try().
+  # NO --skip-unavailable here — we want to know if a package fails.
+
+  step "Base tools"
+  try sudo dnf install -y \
+    dnf-plugins-core git wget curl flatpak fastfetch pipx papirus-icon-theme
+
+  step "Browsers"
+  try sudo dnf install -y \
+    google-chrome-stable brave-browser firefox torbrowser-launcher
+
+  step "Multimedia apps"
+  try sudo dnf install -y \
+    vlc audacity darktable handbrake-gui easyeffects obs-studio
+
+  step "Graphics / 3D"
+  try sudo dnf install -y \
+    gimp inkscape blender
+
+  step "Gaming"
+  try sudo dnf install -y steam
+
+  step "GNOME apps"
+  try sudo dnf install -y \
+    gnome-tweaks baobab nautilus deja-dup gnome-boxes gnome-calculator \
+    gnome-calendar snapshot gnome-characters gnome-abrt gnome-connections \
+    gnome-contacts simple-scan gnome-disk-utility gnome-text-editor \
+    gnome-font-viewer gnome-color-manager gnome-software gnome-clocks \
+    gnome-logs evince loupe
+
+  step "Utilities"
+  try sudo dnf install -y \
+    timeshift solaar dreamchess nordvpn lm_sensors
 
   # NordVPN post-install: enable daemon and add user to nordvpn group
   if rpm -q nordvpn &>/dev/null; then
@@ -256,7 +235,8 @@ install_rpms() {
     step "Adding $USER to nordvpn group (required to run nordvpn commands)"
     try sudo usermod -aG nordvpn "$USER"
     ok "NordVPN ready. Log in with: nordvpn login"
-    warning "You need to log out and back in (or reboot) for group membership to take effect."
+    warning "Group membership requires logout/reboot to take effect."
+    warning "For immediate use without logout, run: newgrp nordvpn"
   fi
 }
 
@@ -266,6 +246,14 @@ install_rpms() {
 # ─────────────────────────────────────────────
 install_freeoffice() {
   info "[FREEOFFICE] Installing FreeOffice 2024"
+
+  # Check connectivity before attempting curl | bash
+  if ! curl -fsSL --max-time 5 -o /dev/null https://softmaker.net/down/install-softmaker-freeoffice-2024.sh 2>/dev/null; then
+    warning "Cannot reach softmaker.net — skipping FreeOffice installation."
+    warning "Run option [4] later when connected, or install manually:"
+    echo "  curl -fsSL https://softmaker.net/down/install-softmaker-freeoffice-2024.sh | sudo bash"
+    return
+  fi
 
   step "Downloading and running official installer"
   if curl -fsSL https://softmaker.net/down/install-softmaker-freeoffice-2024.sh | sudo bash; then
@@ -337,13 +325,14 @@ install_flatpaks() {
 install_nvidia() {
   info "[NVIDIA] Detecting GPU"
 
-  # Precise filter: only VGA/3D/Display class devices
-  if ! lspci | grep -i 'vga\|3d\|display' | grep -qi nvidia; then
+  # Precise filter using PCI class codes:
+  #   0300 = VGA, 0302 = 3D controller, 0380 = Display controller
+  if ! lspci -d ::0300 -d ::0302 -d ::0380 2>/dev/null | grep -qi nvidia; then
     warning "No NVIDIA GPU detected. Skipping driver installation."
     return
   fi
 
-  GPU_INFO="$(lspci | grep -i 'vga\|3d\|display' | grep -i nvidia | head -1)"
+  GPU_INFO="$(lspci -d ::0300 -d ::0302 -d ::0380 2>/dev/null | grep -i nvidia | head -1)"
   ok "NVIDIA GPU detected: $GPU_INFO"
 
   # Secure Boot warning
@@ -421,9 +410,11 @@ install_gnome_extensions() {
   EXTENSIONS=(
     appindicatorsupport@rgcjonas.gmail.com    # AppIndicator (system tray support)
     caffeine@patapon.info                     # Caffeine (prevent suspend)
+    clipboard-indicator@tudmotu.com           # Clipboard Indicator (clipboard manager)
     dash-to-dock@micxgx.gmail.com             # Dash to Dock
     gsconnect@andyholmes.github.io            # GSConnect (KDE Connect for GNOME)
     tilingshell@ferrarodomenico.com           # Tiling Shell
+    Vitals@CoreCoding.com                     # Vitals (CPU/RAM/temp/network monitor in panel)
   )
 
   if command -v gext &>/dev/null; then
@@ -452,6 +443,15 @@ remove_bloat() {
   info "[CLEANUP] Removing bloatware"
   warning "Run this step AFTER installing everything to avoid dependency issues."
 
+  # Backup the package list before removing anything (recovery aid)
+  BACKUP_FILE="$HOME/fedora-y2k-packages-before-cleanup-$(date +%Y%m%d-%H%M%S).txt"
+  step "Backing up current package list to $BACKUP_FILE"
+  if rpm -qa | sort > "$BACKUP_FILE" 2>/dev/null; then
+    ok "Backup saved (restore with: sudo dnf install \$(cat $BACKUP_FILE))."
+  else
+    warning "Failed to write backup."
+  fi
+
   step "Removing LibreOffice (replaced by FreeOffice)"
   try sudo dnf remove -y 'libreoffice*'
 
@@ -476,7 +476,6 @@ remove_bloat() {
     cheese \
     gnome-tour \
     mediawriter \
-    gnome-system-monitor \
     gnome-weather \
     gnome-maps \
     yelp \
@@ -534,7 +533,11 @@ apply_settings() {
   #   3. Direct write to mimeapps.list — guarantees persistence across sessions
   step "Setting VLC as default audio and video player"
 
-  MEDIA_TYPES=(
+  if [[ ! -f /usr/share/applications/vlc.desktop ]]; then
+    warning "VLC is not installed yet — skipping default media player setup."
+    warning "Re-run option [8] after installing VLC (RPM: vlc)."
+  else
+    MEDIA_TYPES=(
     video/mp4
     video/x-matroska
     video/webm
@@ -577,6 +580,7 @@ apply_settings() {
   done
 
   ok "VLC set as default for audio and video (xdg-mime + gio mime + mimeapps.list)."
+  fi
 
   # ── Chrome: Wayland + touchpad two-finger back/forward gestures ──
   step "Configuring Chrome for Wayland touchpad gestures"
@@ -625,7 +629,7 @@ verify_final() {
   echo
   echo -e "${BOLD}── Packages that should have been REMOVED ──${NC}"
   REMOVED_CHECK=$(rpm -qa | grep -E \
-    "libreoffice|^showtime|^decibels|^totem|totem-video-thumbnailer|gnome-music|^rhythmbox|^cheese|gnome-tour|^mediawriter|gnome-system-monitor|gnome-weather|gnome-maps|^yelp|^dconf-editor|^htop|^piper|^gnome-terminal$|gnome-extensions-app" \
+    "libreoffice|^showtime|^decibels|^totem|totem-video-thumbnailer|gnome-music|^rhythmbox|^cheese|gnome-tour|^mediawriter|gnome-weather|gnome-maps|^yelp|^dconf-editor|^htop|^piper|^gnome-terminal$|gnome-extensions-app" \
     2>/dev/null || true)
   if [[ -z "$REMOVED_CHECK" ]]; then
     ok "No unwanted packages found."
@@ -671,7 +675,7 @@ verify_final() {
 
   echo
   echo -e "${BOLD}── NVIDIA GPU ──${NC}"
-  if lspci | grep -i 'vga\|3d\|display' | grep -qi nvidia; then
+  if lspci -d ::0300 -d ::0302 -d ::0380 2>/dev/null | grep -qi nvidia; then
     if rpm -q akmod-nvidia &>/dev/null; then
       ok "NVIDIA driver installed."
       nvidia-smi 2>/dev/null | head -4 || warning "nvidia-smi not available (reboot to load the module)."
@@ -705,8 +709,23 @@ run_all() {
   echo -e "${YELLOW}This will run all steps in the correct order.${NC}"
   echo -e "${CYAN}Order: repos → update → RPMs → FreeOffice → Flatpaks → NVIDIA → Extensions → Remove bloat → Settings${NC}"
   echo
+
+  # Disk space check — full install needs roughly 15+ GB free
+  AVAIL_GB=$(df -BG --output=avail / 2>/dev/null | tail -1 | tr -dc '0-9')
+  if [[ -n "$AVAIL_GB" ]]; then
+    echo -e "${BOLD}Free space on /: ${AVAIL_GB} GB${NC}"
+    if [[ "$AVAIL_GB" -lt 15 ]]; then
+      warning "Less than 15 GB free — full install may run out of space (Steam + Blender + CUDA can easily exceed this)."
+      read -rp "Continue anyway? [y/N]: " DISK_CONFIRM
+      [[ "${DISK_CONFIRM,,}" != "y" ]] && { warning "Cancelled."; return; }
+    fi
+  fi
+
   read -rp "Confirm? [y/N]: " CONFIRM
   [[ "${CONFIRM,,}" != "y" ]] && { warning "Cancelled."; return; }
+
+  # Reset warning counter for clean final summary
+  WARN_COUNT=0
 
   add_repos
   update_system
@@ -717,10 +736,19 @@ run_all() {
   install_gnome_extensions
   remove_bloat        # Removes LibreOffice and bloat AFTER installing everything
   apply_settings      # Visual settings + default apps
+  apply_dnf_safety_setting  # best=False — only AFTER everything is installed
   verify_final
 
   echo
-  ok "Setup complete!"
+  echo -e "${BOLD}════════════════════════════════════════${NC}"
+  echo -e "${BOLD}   SETUP SUMMARY${NC}"
+  echo -e "${BOLD}════════════════════════════════════════${NC}"
+  if [[ "$WARN_COUNT" -eq 0 ]]; then
+    ok "Setup complete with no warnings!"
+  else
+    warning "Setup complete with $WARN_COUNT warning(s) — review the log above."
+  fi
+  echo "  Full log saved to: $LOG_FILE"
   echo -e "${YELLOW}⚠ Reboot the system to activate all drivers and settings.${NC}"
 }
 
