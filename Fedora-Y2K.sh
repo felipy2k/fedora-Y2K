@@ -101,12 +101,6 @@ EOF
     try sudo rpm --import https://brave-browser-rpm-release.s3.brave.com/brave-core.asc
   fi
 
-  step "NordVPN"
-  if [[ ! -f /etc/yum.repos.d/nordvpn.repo ]]; then
-    try sudo dnf config-manager addrepo \
-      --from-repofile=https://repo.nordvpn.com/yum/nordvpn/latest/fedora/nordvpn.repo
-  fi
-
   try sudo dnf makecache
 }
 
@@ -226,17 +220,28 @@ install_rpms() {
 
   step "Utilities"
   try sudo dnf install -y \
-    timeshift solaar dreamchess nordvpn lm_sensors
+    timeshift solaar dreamchess lm_sensors
 
-  # NordVPN post-install: enable daemon and add user to nordvpn group
-  if rpm -q nordvpn &>/dev/null; then
-    step "Enabling nordvpnd service"
-    try sudo systemctl enable --now nordvpnd
-    step "Adding $USER to nordvpn group (required to run nordvpn commands)"
-    try sudo usermod -aG nordvpn "$USER"
-    ok "NordVPN ready. Log in with: nordvpn login"
-    warning "Group membership requires logout/reboot to take effect."
-    warning "For immediate use without logout, run: newgrp nordvpn"
+  # ── NordVPN — official installer (handles repo + GPG + install) ──
+  step "NordVPN"
+  if ! command -v nordvpn &>/dev/null; then
+    if curl -sSf --max-time 10 -o /dev/null https://downloads.nordcdn.com/apps/linux/install.sh 2>/dev/null; then
+      step "Running official NordVPN installer (CLI + GUI)"
+      if sh <(curl -sSf https://downloads.nordcdn.com/apps/linux/install.sh) -p nordvpn-gui; then
+        ok "NordVPN installed."
+        try sudo systemctl enable --now nordvpnd
+        try sudo usermod -aG nordvpn "$USER"
+        ok "Log in with: nordvpn login"
+        warning "Group membership requires logout/reboot. For immediate use: newgrp nordvpn"
+      else
+        warning "NordVPN installer failed. Try manually after reboot:"
+        echo "  sh <(curl -sSf https://downloads.nordcdn.com/apps/linux/install.sh)"
+      fi
+    else
+      warning "Cannot reach nordcdn.com — skipping NordVPN."
+    fi
+  else
+    ok "NordVPN already installed (skipping)."
   fi
 }
 
