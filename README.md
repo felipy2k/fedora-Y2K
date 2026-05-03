@@ -83,7 +83,7 @@ The script uses a `try()` function — if any step fails (package already instal
 | Graphics / 3D | GIMP, Inkscape, Blender |
 | Gaming | Steam |
 | GNOME Apps | Tweaks, Baobab, Déjà Dup, Boxes, Calculator, Calendar, Snapshot, Characters, Connections, Contacts, Simple Scan, Disk Utility, Text Editor, Font Viewer, Color Manager, Software, Clocks, Logs, Evince, Loupe |
-| Utilities | Timeshift, Solaar, fastfetch, pipx, DreamChess |
+| Utilities | Timeshift, Solaar, fastfetch, pipx, DreamChess, lm_sensors |
 | VPN | **NordVPN** (official repo, daemon enabled, user added to `nordvpn` group) |
 | Office | FreeOffice 2024 (via official SoftMaker installer) |
 
@@ -99,9 +99,11 @@ The script uses a `try()` function — if any step fails (package already instal
 ### 🧩 GNOME Extensions (via `gnome-extensions-cli`)
 - AppIndicator Support
 - Caffeine
+- Clipboard Indicator
 - Dash to Dock
 - GSConnect (KDE Connect for GNOME)
 - Tiling Shell
+- Vitals (CPU, RAM, temperatures, fan speed, network — uses `lm_sensors` for hardware data)
 
 ### 🎯 Default Applications & Settings
 
@@ -121,7 +123,7 @@ The script uses a `try()` function — if any step fails (package already instal
 | Audio | Decibels, GNOME Music, Rhythmbox |
 | Terminal | GNOME Terminal (keeps **Ptyxis**, default since Fedora 41) |
 | Extensions | gnome-extensions-app RPM (replaced by Extension Manager Flatpak) |
-| Other | Cheese, GNOME Tour, Mediawriter, GNOME System Monitor, Weather, Maps, Yelp, dconf-editor, htop, Piper, JACK |
+| Other | Cheese, GNOME Tour, Mediawriter, Weather, Maps, Yelp, dconf-editor, htop, Piper, JACK |
 | Flatpaks | Showtime, Decibels, Totem, GNOME Music, Piper, GNOME Help, Bruno |
 
 ### 🎨 Visual Settings
