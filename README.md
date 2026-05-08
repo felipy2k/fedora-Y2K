@@ -87,7 +87,7 @@ The `try()` function wraps every command — if anything fails, it logs a warnin
 | Graphics / 3D | GIMP, Inkscape, Blender |
 | Gaming | Steam |
 | GNOME Apps | Tweaks, Baobab, Déjà Dup, Boxes, Calculator, Calendar, Snapshot, Characters, Connections, Contacts, Simple Scan, Disk Utility, Text Editor, Font Viewer, Color Manager, Software, Clocks, Logs, Evince, Loupe |
-| Utilities | Timeshift, Solaar, fastfetch, pipx, DreamChess, lm_sensors |
+| Utilities | Timeshift, Solaar, fastfetch, pipx, DreamChess, lm_sensors, InputLeap |
 | VPN | **NordVPN** CLI + GUI (official installer, daemon enabled, user added to group) |
 | Office | FreeOffice 2024 (via official SoftMaker installer) |
 
@@ -101,6 +101,7 @@ The `try()` function wraps every command — if anything fails, it logs a warnin
 | Entertainment | Blanket, Shortwave, Podcasts, Gcolor3, Sticky Notes, Alpaca |
 
 ### 🧩 GNOME Extensions (via `gnome-extensions-cli`)
+- Alphabetical App Grid
 - AppIndicator Support
 - Caffeine
 - Clipboard Indicator
