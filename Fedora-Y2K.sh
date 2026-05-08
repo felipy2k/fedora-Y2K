@@ -220,7 +220,7 @@ install_rpms() {
 
   step "Utilities"
   try sudo dnf install -y \
-    timeshift solaar dreamchess lm_sensors
+    timeshift solaar dreamchess lm_sensors input-leap
 
   # ── NordVPN — official installer (handles repo + GPG + install) ──
   step "NordVPN"
@@ -413,6 +413,7 @@ install_gnome_extensions() {
   fi
 
   EXTENSIONS=(
+    AlphabeticalAppGrid@stuarthayhurst        # Alphabetical App Grid
     appindicatorsupport@rgcjonas.gmail.com    # AppIndicator (system tray support)
     caffeine@patapon.info                     # Caffeine (prevent suspend)
     clipboard-indicator@tudmotu.com           # Clipboard Indicator (clipboard manager)
@@ -646,7 +647,7 @@ verify_final() {
   echo
   echo -e "${BOLD}── RPM packages that should exist ──${NC}"
   rpm -qa | grep -E \
-    "google-chrome-stable|brave-browser|firefox|^vlc|audacity|darktable|handbrake|inkscape|easyeffects|^gimp|^blender|^steam|^dreamchess|^nordvpn|obs-studio|gnome-software|papirus|softmaker|freeoffice|^solaar|timeshift|deja-dup" \
+    "google-chrome-stable|brave-browser|firefox|^vlc|audacity|darktable|handbrake|inkscape|easyeffects|^gimp|^blender|^steam|^dreamchess|^nordvpn|^input-leap|obs-studio|gnome-software|papirus|softmaker|freeoffice|^solaar|timeshift|deja-dup" \
     2>/dev/null || warning "Some RPM packages may not be installed."
 
   echo
