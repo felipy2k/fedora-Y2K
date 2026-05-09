@@ -216,7 +216,7 @@ install_rpms() {
     gnome-calendar snapshot gnome-characters gnome-abrt gnome-connections \
     gnome-contacts simple-scan gnome-disk-utility gnome-text-editor \
     gnome-font-viewer gnome-color-manager gnome-software gnome-clocks \
-    gnome-logs evince loupe
+    gnome-logs evince loupe file-roller
 
   step "Utilities"
   try sudo dnf install -y \
@@ -283,7 +283,6 @@ install_flatpaks() {
     com.mattjakeman.ExtensionManager        # GNOME Extension Manager
     net.nokyan.Resources                    # Resource monitor
     com.github.tchx84.Flatseal              # Flatpak permissions manager
-    io.github.peazip.PeaZip                 # Archive manager
     com.system76.Popsicle                   # USB image flasher
     com.github.ADBeveridge.Raider           # File Shredder
     org.localsend.localsend_app             # LocalSend (LAN file sharing)
@@ -676,7 +675,7 @@ verify_final() {
   echo
   echo -e "${BOLD}── Installed Flatpaks ──${NC}"
   flatpak list --app --columns=application 2>/dev/null | grep -E \
-    "Alpaca|Resources|Flatseal|Blanket|Raider|FreeCAD|Upscayl|Shotcut|VideoTrimmer|cameractrls|converseen|nokse22.Exhibit|Minder|Motrix|localsend|PeaZip|Podcasts|Popsicle|Shortwave|sticky|Converter|ExtensionManager|PodmanDesktop" \
+    "Alpaca|Resources|Flatseal|Blanket|Raider|FreeCAD|Upscayl|Shotcut|VideoTrimmer|cameractrls|converseen|nokse22.Exhibit|Minder|Motrix|localsend|Podcasts|Popsicle|Shortwave|sticky|Converter|ExtensionManager|PodmanDesktop" \
     || warning "Some expected Flatpaks may not be installed."
 
   echo
