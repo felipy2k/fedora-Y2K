@@ -1,147 +1,11 @@
-# 🎩 Fedora Post-Install Setup Script
+# 🐧 Fedora Y2K — Post-Install Setup Script
 
-An interactive post-installation script for **Fedora Workstation 41+**, optimized for **Fedora 44 with GNOME 50**.  
-Automates repositories, codecs, drivers, RPM packages, Flatpaks, GNOME extensions, default apps, dock layout, and visual settings — all through a modular interactive menu.
-
----
-
-## ⚙️ Requirements
-
-- Fedora Workstation **41 or later** (optimized for Fedora 44 + GNOME 50)
-- Internet connection
-- A user account with `sudo` access
+> An interactive post-installation script for **Fedora Workstation 41+**, optimized for **Fedora 44 + GNOME 50**.  
+> Automates everything from repositories and codecs to drivers, apps, extensions, and visual settings — through a clean modular menu.
 
 ---
 
-## 📝 Important Notes
-
-**RPM Fusion update conflicts**  
-When Fedora releases a system update (e.g. `ffmpeg-free`, `mesa`) and RPM Fusion hasn't yet published the corresponding freeworld package, DNF/GNOME Software can throw confusing dependency errors. The script sets `best=False` in `/etc/dnf/dnf.conf` **only after all packages are installed** — this tells DNF to skip unresolvable packages rather than abort future updates, without affecting the initial installation.
-
-**NVIDIA + Secure Boot**  
-If Secure Boot is enabled, the script detects it and prompts for confirmation before proceeding. After installation, the `akmod` kernel module must be manually signed. See: [RPM Fusion — Secure Boot](https://rpmfusion.org/Howto/Secure%20Boot)
-
-**CUDA Toolkit**  
-The RPM Fusion driver already includes CUDA runtime support for applications (Blender, OBS, etc.). The full CUDA Toolkit (`nvcc`, cuBLAS, headers) is optional and installed from the official NVIDIA repository upon interactive confirmation, with automatic exclusion of packages that conflict with RPM Fusion.
-
-**VLC as default player**  
-GNOME's system-level `gnome-mimeapps.list` can override user-level defaults. The script uses three methods simultaneously — `xdg-mime`, `gio mime`, and direct writes to `~/.config/mimeapps.list` — to reliably set VLC as the default for all common audio and video formats.
-
-**Chrome touchpad gestures**  
-The script enables two-finger swipe back/forward in Chrome by writing `--ozone-platform=wayland` and `--enable-features=TouchpadOverscrollHistoryNavigation` to `~/.config/chrome-flags.conf` and to a user-level copy of the `.desktop` file. The operation is idempotent — safe to run multiple times.
-
-**NordVPN**  
-Installed via the official NordVPN installer (`downloads.nordcdn.com`), which handles the repository, GPG key, and package in one step. Both **CLI and GUI** are installed (`-p nordvpn-gui`). The `nordvpnd` daemon is enabled automatically and your user is added to the `nordvpn` group. After installation, run `nordvpn login` and use `newgrp nordvpn` for immediate use without logout.
-
-**FreeOffice**  
-Installed via the official SoftMaker script *before* LibreOffice is removed, ensuring no gap in office suite availability. Connectivity is checked first — if offline, the step is skipped with instructions to retry.
-
-**Reliability & recovery**  
-The script ships several safety features:
-- **Logging** — every run writes a full timestamped log to `~/fedora-y2k-YYYYMMDD-HHMMSS.log`
-- **Robust error handling** — failures in any single step are logged as warnings and never abort the script
-- **Grouped installs** — RPM packages are installed in 7 independent groups (Base tools, Browsers, Multimedia, Graphics, Gaming, GNOME apps, Utilities), so a failure in one group is visible and isolated
-- **Disk space check** — warns if `/` has less than 15 GB free before a full install
-- **Package backup** — before removing bloatware, the full RPM list is saved to `~/fedora-y2k-packages-before-cleanup-*.txt`
-- **Final summary** — reports total warnings encountered and the log path
-- **Idempotent** — safe to re-run; already-applied changes (ffmpeg swap, mesa drivers, Chrome flags, dnf.conf) are skipped
-
-**Non-blocking failures**  
-The `try()` function wraps every command — if anything fails, it logs a warning and continues. No single failure aborts the process.
-
----
-
-## ✨ What the script does
-
-### 📦 Repositories
-- RPM Fusion Free + Nonfree (with AppStream metadata for GNOME Software)
-- RPM Fusion Tainted (extra firmware and codecs)
-- `fedora-cisco-openh264` (H.264 for Firefox and WebRTC)
-- Google Chrome
-- Brave Browser
-
-### 🎬 Multimedia Codecs
-- Swaps `ffmpeg-free` for full `ffmpeg` (H.264, H.265, AAC, MP3, and more) — idempotent
-- Individual GStreamer packages installed directly — compatible with **DNF5 (Fedora 43+)**:
-  `base`, `good`, `bad-free`, `bad-freeworld`, `ugly`, `ugly-free`, `plugin-libav`, `openh264`
-- `lame` + `lame-libs` (MP3 encoding), `mozilla-openh264` (H.264 for Firefox/WebRTC)
-- Hardware acceleration (VA-API/VDPAU) auto-detected by GPU — idempotent swaps:
-  - **AMD** → `mesa-va-drivers-freeworld` + `mesa-vdpau-drivers-freeworld`
-  - **Intel** → `intel-media-driver` + `libva-intel-driver`
-  - **NVIDIA** → handled by the dedicated driver section
-
-### 🖥️ NVIDIA Driver + CUDA
-- GPU auto-detection using PCI class codes (`0300`, `0302`, `0380`) — avoids false positives
-- Secure Boot detection with warning and confirmation prompt
-- Installs via RPM Fusion: `akmod-nvidia`, `xorg-x11-drv-nvidia-cuda`, `nvidia-settings`, `nvidia-vaapi-driver`
-- Builds the kernel module with `akmods --force` and regenerates initramfs via `dracut --force`
-- Enables power management services (`nvidia-hibernate`, `nvidia-resume`, `nvidia-suspend`)
-- Optional: full CUDA Toolkit (`nvcc`, cuBLAS, headers) via official NVIDIA repo, with automatic conflict exclusion
-
-### 📥 RPM Packages Installed
-
-| Category | Apps |
-|---|---|
-| Browsers | Firefox, Google Chrome, **Brave**, Tor Browser |
-| Multimedia | VLC, Audacity, Darktable, Handbrake, EasyEffects, OBS Studio |
-| Graphics / 3D | GIMP, Inkscape, Blender |
-| Gaming | Steam |
-| GNOME Apps | Tweaks, Baobab, Déjà Dup, Boxes, Calculator, Calendar, Snapshot, Characters, Connections, Contacts, Simple Scan, Disk Utility, Text Editor, Font Viewer, Color Manager, Software, Clocks, Logs, Evince, Loupe |
-| Utilities | Timeshift, Solaar, fastfetch, pipx, DreamChess, lm_sensors, InputLeap |
-| VPN | **NordVPN** CLI + GUI (official installer, daemon enabled, user added to group) |
-| Office | FreeOffice 2024 (via official SoftMaker installer) |
-
-### 📱 Flatpaks (Flathub)
-
-| Category | Apps |
-|---|---|
-| System | Extension Manager, Resources, Flatseal, PeaZip, Popsicle, File Shredder (Raider), LocalSend, Switcheroo, Podman Desktop |
-| Multimedia | Shotcut, Video Trimmer, Camera Ctrls, Converseen |
-| Productivity | FreeCAD, Upscayl, Exhibit (3D Viewer), Minder, Motrix |
-| Entertainment | Blanket, Shortwave, Podcasts, Gcolor3, Sticky Notes, Alpaca |
-
-### 🧩 GNOME Extensions (via `gnome-extensions-cli`)
-- Alphabetical App Grid
-- AppIndicator Support
-- Caffeine
-- Clipboard Indicator
-- Dash to Dock
-- GSConnect (KDE Connect for GNOME)
-- Tiling Shell
-- Vitals (CPU, RAM, temperatures, fan speed, network — uses `lm_sensors` for hardware data)
-
-### 🎯 Default Applications & Settings
-- **Web browser** → Google Chrome
-- **Video player** → VLC (xdg-mime + gio mime + mimeapps.list, 10 video MIME types)
-- **Audio player** → VLC (same 3-method approach, 9 audio MIME types)
-- **Title bar buttons** → Minimize + Maximize + Close, right side
-- **Dock shortcuts** → Chrome · Files · Text Editor · Ptyxis · Calculator · App Grid
-- **Chrome touchpad** → Two-finger swipe back/forward via Wayland flags
-
-### 🧹 Bloatware Removed
-
-| Type | What is removed |
-|---|---|
-| Office | LibreOffice (replaced by FreeOffice) |
-| Video | Showtime, Totem, totem-video-thumbnailer |
-| Audio | Decibels, GNOME Music, Rhythmbox |
-| Terminal | GNOME Terminal (keeps **Ptyxis**, default since Fedora 41) |
-| Extensions | gnome-extensions-app RPM (replaced by Extension Manager Flatpak) |
-| Other | Cheese, GNOME Tour, Mediawriter, Weather, Maps, Yelp, dconf-editor, htop, Piper, JACK |
-| Flatpaks | Showtime, Decibels, Totem, GNOME Music, Piper, GNOME Help, Bruno |
-
-### 🎨 Visual Settings
-- Icon theme: **Papirus**
-- Color scheme: **Dark mode**
-- Clock with date and seconds visible
-- Minimize and Maximize buttons enabled (right side of title bar)
-- Dock shortcuts configured
-- Chrome configured for Wayland with two-finger touchpad gestures
-- NASA wallpaper applied automatically
-
----
-
-## 🚀 How to use
+## 🚀 Quick Start
 
 ```bash
 git clone https://github.com/felipy2k/fedora-Y2K.git
@@ -169,12 +33,192 @@ bash Fedora-Y2K.sh
 ║  [8] Apply visual settings only                              ║
 ║  [9] Final verification                                      ║
 ║  [0] Exit                                                    ║
-║  [r] Exit and reboot the system                              ║
+║  [r] Exit and reboot                                         ║
 ╚═══════════════════════════════════════════════════════════════╝
 ```
 
-Option **[1] Run EVERYTHING** ensures the correct execution order:
+**Option [1] Run EVERYTHING** — correct execution order guaranteed:
 
 ```
-repos → update → RPMs (+ NordVPN) → FreeOffice → Flatpaks → NVIDIA → Extensions → Remove bloat → Settings → best=False
+repos → update → RPMs → FreeOffice → Flatpaks → NVIDIA → Extensions → Remove bloat → Settings → best=False
 ```
+
+---
+
+## ✨ What gets installed
+
+### 📦 Repositories
+| | |
+|---|---|
+| 🔴 | RPM Fusion Free + Nonfree + Tainted |
+| 🌐 | Google Chrome |
+| 🦁 | Brave Browser |
+| 🔓 | fedora-cisco-openh264 (H.264 for Firefox/WebRTC) |
+
+---
+
+### 🎬 Multimedia Codecs
+- 🔄 Swaps `ffmpeg-free` → full `ffmpeg` (H.264, H.265, AAC, MP3…) — **idempotent**
+- 🎛️ Full GStreamer stack — **DNF5/Fedora 44 compatible** (individual packages, no broken group commands)
+- ⚡ Hardware acceleration auto-detected by GPU:
+  - 🔴 **AMD** → `mesa-va-drivers-freeworld` + `mesa-vdpau-drivers-freeworld`
+  - 🔵 **Intel** → `intel-media-driver` + `libva-intel-driver`
+  - 🟢 **NVIDIA** → handled by the dedicated driver section
+
+---
+
+### 🖥️ NVIDIA Driver + CUDA
+- 🔍 GPU detection via PCI class codes — no false positives
+- 🔐 Secure Boot detection with confirmation prompt
+- 📦 RPM Fusion: `akmod-nvidia`, `xorg-x11-drv-nvidia-cuda`, `nvidia-settings`, `nvidia-vaapi-driver`
+- 🔨 Builds kernel module (`akmods --force`) + regenerates initramfs (`dracut --force`)
+- ⚡ Enables power services: `nvidia-hibernate`, `nvidia-resume`, `nvidia-suspend`
+- 🧪 Optional: full CUDA Toolkit (`nvcc`, cuBLAS, headers) via official NVIDIA repo
+
+---
+
+### 📥 RPM Packages
+
+| 🗂️ Category | 📦 Apps |
+|---|---|
+| 🌐 Browsers | Firefox, Google Chrome, Brave, Tor Browser |
+| 🎬 Multimedia | VLC, Audacity, Darktable, Handbrake, EasyEffects, OBS Studio |
+| 🎨 Graphics / 3D | GIMP, Inkscape, Blender |
+| 🎮 Gaming | Steam |
+| 🖥️ GNOME Apps | Tweaks, Baobab, Déjà Dup, Boxes, Calculator, Calendar, Snapshot, Characters, Connections, Contacts, Simple Scan, Disk Utility, Text Editor, Font Viewer, Color Manager, Software, Clocks, Logs, Evince, Loupe, **File Roller** |
+| 🔧 Utilities | Timeshift, Solaar, fastfetch, pipx, DreamChess, lm_sensors, InputLeap |
+| 🛡️ VPN | **NordVPN** CLI + GUI (official installer, daemon enabled, user added to group) |
+| 📝 Office | FreeOffice 2024 (official SoftMaker installer) |
+
+---
+
+### 📱 Flatpaks (Flathub)
+
+| 🗂️ Category | 📦 Apps |
+|---|---|
+| 🔧 System | Extension Manager, Resources, Flatseal, Popsicle, File Shredder (Raider), LocalSend, Switcheroo, Podman Desktop |
+| 🎬 Multimedia | Shotcut, Video Trimmer, Camera Ctrls, Converseen |
+| 🧠 Productivity | FreeCAD, Upscayl, Exhibit (3D Viewer), Minder, Motrix |
+| 🎵 Entertainment | Blanket, Shortwave, Podcasts, Gcolor3, Sticky Notes, Alpaca |
+
+---
+
+### 🧩 GNOME Extensions
+
+| 🔌 Extension | 📋 Purpose |
+|---|---|
+| AlphabeticalAppGrid | Sorts app grid alphabetically |
+| AppIndicator Support | System tray icons |
+| Caffeine | Prevent sleep/suspend |
+| Clipboard Indicator | Clipboard history manager |
+| Dash to Dock | Persistent app dock |
+| GSConnect | KDE Connect integration for GNOME |
+| Tiling Shell | Window tiling manager |
+| Vitals | CPU, RAM, temp, fan, network in panel (uses `lm_sensors`) |
+
+---
+
+### 🎯 Default Apps & Settings
+
+| ⚙️ Setting | 🎯 Value |
+|---|---|
+| 🌐 Web browser | Google Chrome |
+| 🎬 Video player | VLC (via xdg-mime + gio mime + mimeapps.list) |
+| 🎵 Audio player | VLC (same 3-method approach) |
+| 🪟 Title bar | Minimize + Maximize + Close (right side) |
+| 🚀 Dock | Chrome · Files · Text Editor · Ptyxis · Calculator · App Grid |
+| 👆 Chrome touchpad | Two-finger swipe back/forward (Wayland flags) |
+
+---
+
+### 🧹 Bloatware Removed
+
+| ❌ Type | 🗑️ What goes away |
+|---|---|
+| 📝 Office | LibreOffice → replaced by FreeOffice |
+| 🎬 Video | Showtime, Totem, totem-video-thumbnailer |
+| 🎵 Audio | Decibels, GNOME Music, Rhythmbox |
+| 💻 Terminal | GNOME Terminal → keeps **Ptyxis** (default since Fedora 41) |
+| 🧩 Extensions | gnome-extensions-app → replaced by Extension Manager Flatpak |
+| 🗑️ Other | Cheese, GNOME Tour, Mediawriter, Weather, Maps, Yelp, dconf-editor, htop, Piper, JACK |
+
+---
+
+### 🎨 Visual Settings
+
+| 🎨 | |
+|---|---|
+| 🖼️ | Icon theme: **Papirus** |
+| 🌑 | Color scheme: **Dark mode** |
+| 🕐 | Clock with date and seconds |
+| 🪟 | Minimize + Maximize buttons on title bar |
+| 🚀 | Dock shortcuts configured |
+| 👆 | Chrome Wayland touchpad gestures |
+| 🌌 | NASA wallpaper applied automatically |
+
+---
+
+## ⚙️ Requirements
+
+| | |
+|---|---|
+| 🐧 | Fedora Workstation **41 or later** (optimized for Fedora 44 + GNOME 50) |
+| 🌐 | Internet connection |
+| 🔑 | User account with `sudo` access |
+| 💾 | ~15 GB free disk space (Steam + Blender + CUDA) |
+
+---
+
+## 📝 Important Notes
+
+<details>
+<summary>⚠️ RPM Fusion update conflicts</summary>
+
+When Fedora releases a system update and RPM Fusion hasn't yet published the matching freeworld package, DNF/GNOME Software can throw confusing dependency errors. The script sets `best=False` in `/etc/dnf/dnf.conf` **only after all packages are installed** — so future updates skip unresolvable packages rather than aborting, without affecting the initial install.
+</details>
+
+<details>
+<summary>🟢 NVIDIA + Secure Boot</summary>
+
+If Secure Boot is enabled, the script detects it and prompts for confirmation. After installation, the `akmod` module must be manually signed. See: [RPM Fusion — Secure Boot](https://rpmfusion.org/Howto/Secure%20Boot)
+</details>
+
+<details>
+<summary>🧪 CUDA Toolkit</summary>
+
+The RPM Fusion driver already includes CUDA runtime for apps (Blender, OBS, etc.). The full Toolkit (`nvcc`, cuBLAS, headers) is optional — installed from the official NVIDIA repo upon confirmation, with automatic conflict exclusion against RPM Fusion packages.
+</details>
+
+<details>
+<summary>🛡️ NordVPN</summary>
+
+Installed via the official NordVPN installer (`downloads.nordcdn.com`) — handles repo, GPG key, and packages in one step. Both **CLI and GUI** are installed (`-p nordvpn-gui`). The `nordvpnd` daemon is enabled and your user is added to the `nordvpn` group. After install: `nordvpn login`. For immediate use without logout: `newgrp nordvpn`.
+</details>
+
+<details>
+<summary>🎬 VLC as default player</summary>
+
+GNOME's system-level `gnome-mimeapps.list` can override user settings. The script uses **three methods simultaneously** — `xdg-mime`, `gio mime`, and direct `~/.config/mimeapps.list` writes — covering 19 MIME types.
+</details>
+
+<details>
+<summary>👆 Chrome touchpad gestures</summary>
+
+Writes `--ozone-platform=wayland` and `--enable-features=TouchpadOverscrollHistoryNavigation` to `~/.config/chrome-flags.conf` and a user-level `.desktop` copy. Idempotent — safe to re-run.
+</details>
+
+<details>
+<summary>🛡️ Reliability & recovery</summary>
+
+- 📋 **Logging** — timestamped log saved to `~/fedora-y2k-YYYYMMDD-HHMMSS.log`
+- 🔒 **Grouped installs** — 7 independent RPM groups; failures are isolated and visible
+- 💾 **Package backup** — full RPM list saved before bloat removal
+- 💿 **Disk space check** — warns if less than 15 GB free
+- 📊 **Final summary** — total warnings + log path
+- 🔄 **Idempotent** — safe to re-run; already-applied changes are detected and skipped
+- 🛡️ **Non-blocking** — `try()` wraps every command; failures log warnings and never abort
+</details>
+
+---
+
+*Made with ❤️ for Fedora users*
