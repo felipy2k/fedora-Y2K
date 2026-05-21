@@ -5,6 +5,23 @@
 
 ---
 
+## ⚠️ Before you start — Disable Secure Boot
+
+**Secure Boot must be disabled in your BIOS/UEFI before running this script.**
+
+The NVIDIA driver (`akmod-nvidia`) is a kernel module that requires signing to work with Secure Boot enabled. If you skip this step, the system may boot without GPU acceleration or fail to load the driver entirely.
+
+> 💡 **How to disable Secure Boot:**
+> 1. Restart your computer and enter BIOS/UEFI (usually `F2`, `F10`, `F12` or `Del` during boot)
+> 2. Navigate to the **Security** or **Boot** tab
+> 3. Find **Secure Boot** and set it to **Disabled**
+> 4. Save and exit (`F10`)
+> 5. Boot into Fedora and run the script
+
+> 🔵 **Don't have an NVIDIA GPU?** You can skip this step — Secure Boot won't affect the rest of the installation.
+
+---
+
 ## 🚀 Quick Start
 
 ```bash
