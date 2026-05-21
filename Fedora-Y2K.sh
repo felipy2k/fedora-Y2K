@@ -95,12 +95,6 @@ gpgkey=https://dl.google.com/linux/linux_signing_key.pub
 EOF
   fi
 
-  step "Brave Browser"
-  if [[ ! -f /etc/yum.repos.d/brave-browser.repo ]]; then
-    try sudo dnf config-manager addrepo --from-repofile=https://brave-browser-rpm-release.s3.brave.com/brave-browser.repo
-    try sudo rpm --import https://brave-browser-rpm-release.s3.brave.com/brave-core.asc
-  fi
-
   try sudo dnf makecache
 }
 
@@ -197,7 +191,7 @@ install_rpms() {
 
   step "Browsers"
   try sudo dnf install -y \
-    google-chrome-stable brave-browser firefox torbrowser-launcher
+    google-chrome-stable firefox torbrowser-launcher
 
   step "Multimedia apps"
   try sudo dnf install -y \
@@ -647,7 +641,7 @@ verify_final() {
   echo
   echo -e "${BOLD}── RPM packages that should exist ──${NC}"
   rpm -qa | grep -E \
-    "google-chrome-stable|brave-browser|firefox|^vlc|audacity|darktable|handbrake|inkscape|easyeffects|^gimp|^blender|^steam|^dreamchess|^nordvpn|^deskflow|obs-studio|gnome-software|papirus|softmaker|freeoffice|^solaar|timeshift|deja-dup" \
+    "google-chrome-stable|firefox|^vlc|audacity|darktable|handbrake|inkscape|easyeffects|^gimp|^blender|^steam|^dreamchess|^nordvpn|^deskflow|obs-studio|gnome-software|papirus|softmaker|freeoffice|^solaar|timeshift|deja-dup" \
     2>/dev/null || warning "Some RPM packages may not be installed."
 
   echo
