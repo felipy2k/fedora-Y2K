@@ -52,7 +52,6 @@ repos → update → RPMs → FreeOffice → Flatpaks → NVIDIA → Extensions 
 |---|---|
 | 🔴 | RPM Fusion Free + Nonfree + Tainted |
 | 🌐 | Google Chrome |
-| 🦁 | Brave Browser |
 | 🔓 | fedora-cisco-openh264 (H.264 for Firefox/WebRTC) |
 
 ---
@@ -81,7 +80,7 @@ repos → update → RPMs → FreeOffice → Flatpaks → NVIDIA → Extensions 
 
 | 🗂️ Category | 📦 Apps |
 |---|---|
-| 🌐 Browsers | Firefox, Google Chrome, Brave, Tor Browser |
+| 🌐 Browsers | Firefox, Google Chrome, Tor Browser |
 | 🎬 Multimedia | VLC, Audacity, Darktable, Handbrake, EasyEffects, OBS Studio |
 | 🎨 Graphics / 3D | GIMP, Inkscape, Blender |
 | 🎮 Gaming | Steam |
