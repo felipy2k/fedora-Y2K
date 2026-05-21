@@ -109,6 +109,7 @@ repos → update → RPMs → FreeOffice → Flatpaks → NVIDIA → Extensions 
 |---|---|
 | AlphabeticalAppGrid | Sorts app grid alphabetically |
 | AppIndicator Support | System tray icons |
+| Blur my Shell | Blur effect on panel, dash and overview |
 | Caffeine | Prevent sleep/suspend |
 | Clipboard Indicator | Clipboard history manager |
 | Dash to Dock | Persistent app dock |
