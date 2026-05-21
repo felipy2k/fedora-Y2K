@@ -414,6 +414,7 @@ install_gnome_extensions() {
   EXTENSIONS=(
     AlphabeticalAppGrid@stuarthayhurst        # Alphabetical App Grid
     appindicatorsupport@rgcjonas.gmail.com    # AppIndicator (system tray support)
+    blur-my-shell@aunetx                      # Blur my Shell (blur panel, dash, overview)
     caffeine@patapon.info                     # Caffeine (prevent suspend)
     clipboard-indicator@tudmotu.com           # Clipboard Indicator (clipboard manager)
     dash-to-dock@micxgx.gmail.com             # Dash to Dock
