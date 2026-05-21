@@ -236,6 +236,3 @@ Writes `--ozone-platform=wayland` and `--enable-features=TouchpadOverscrollHisto
 - 🛡️ **Non-blocking** — `try()` wraps every command; failures log warnings and never abort
 </details>
 
----
-
-*Made with ❤️ for Fedora users*
